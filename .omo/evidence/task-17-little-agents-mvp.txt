@@ -1,0 +1,4 @@
+Verified `LittleAgentsExtension/Llm/TemplateRenderer.cs` as a pure renderer with no clipboard access.
+`dotnet test "LittleAgentsExtension.Tests/LittleAgentsExtension.Tests.csproj" --filter "FullyQualifiedName~TemplateRendererTests" -c Debug -p:Platform=x64` passed with 11/11 tests.
+`dotnet build "LittleAgentsExtension/LittleAgentsExtension.csproj" -c Debug -p:Platform=x64` passed.
+Source checks: renderer file is 57 lines; no `ClipboardReader` or `GetTextAsync` references.

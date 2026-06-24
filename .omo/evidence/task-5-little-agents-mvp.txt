@@ -1,0 +1,36 @@
+T5 evidence - LittleAgentsExtension.Tests xUnit project
+
+Baseline
+- Initial repo scan showed no `LittleAgentsExtension.Tests` project/folder.
+- `LittleAgentsExtension.sln` originally listed only `LittleAgentsExtension`.
+
+Implemented
+- Added `LittleAgentsExtension.Tests/LittleAgentsExtension.Tests.csproj` targeting `net9.0-windows10.0.26100.0`.
+- Added `ProjectReference` to `..\\LittleAgentsExtension\\LittleAgentsExtension.csproj`.
+- Added package references for `Microsoft.NET.Test.Sdk`, `xunit`, and `xunit.runner.visualstudio`.
+- Added central package versions in `Directory.Packages.props`:
+  - `Microsoft.NET.Test.Sdk` 17.11.1
+  - `xunit` 2.9.3
+  - `xunit.runner.visualstudio` 2.8.2
+- Added `LittleAgentsExtension.Tests` to `LittleAgentsExtension.sln`.
+- Compatibility note: `LittleAgentsExtension.csproj` was adjusted so `PublishSingleFile` is Release-only; the test project reference also passes `Platform=x64` to keep `dotnet test` from tripping app packaging on the app dependency build.
+
+Verification commands and results
+1. `dotnet test "LittleAgentsExtension.Tests/LittleAgentsExtension.Tests.csproj" 2>&1; "EXITCODE=$LASTEXITCODE"`
+   - Final success output included: `LittleAgentsExtension.Tests.dll ...` and `没有可用测试。`
+   - Exit code: `EXITCODE=0`
+2. `dotnet sln "LittleAgentsExtension.sln" list`
+   - Output listed both `LittleAgentsExtension.Tests\LittleAgentsExtension.Tests.csproj` and `LittleAgentsExtension\LittleAgentsExtension.csproj`.
+3. `Select-String -Path "Directory.Packages.props" -Pattern "xunit|xunit.runner.visualstudio|Microsoft.NET.Test.Sdk"`
+   - Matched all 3 central package versions.
+4. `Select-String -Path "LittleAgentsExtension.Tests/LittleAgentsExtension.Tests.csproj" -Pattern "Moq"`
+   - No matches.
+
+Negative probe / cleanup receipt
+- Temporary probe: removed `xunit` package reference and added `LittleAgentsExtension.Tests/Probe.cs` using `[Fact]`.
+- Probe command: `dotnet test "LittleAgentsExtension.Tests/LittleAgentsExtension.Tests.csproj" 2>&1; "EXITCODE=$LASTEXITCODE"`
+- Probe result: CS0246 for `Xunit`, `FactAttribute`, and `Fact`; `EXITCODE=1`.
+- Cleanup: restored the `xunit` package reference and deleted `LittleAgentsExtension.Tests/Probe.cs`.
+
+Notes
+- Earlier `dotnet test` attempts failed on app-project publish/packaging behavior until the compatibility adjustments above were applied.

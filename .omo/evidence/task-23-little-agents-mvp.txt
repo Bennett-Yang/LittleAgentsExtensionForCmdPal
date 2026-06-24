@@ -1,0 +1,57 @@
+T23 evidence - provider now opens AgentsListPage
+
+Changed files:
+- LittleAgentsExtension/LittleAgentsExtensionCommandsProvider.cs
+- LittleAgentsExtension/Pages/LittleAgentsExtensionPage.cs
+- LittleAgentsExtension.Tests/LittleAgentsExtensionCommandsProviderTests.cs
+- .omo/evidence/task-23-little-agents-mvp.txt
+
+Scope boundaries:
+- Implemented only T23 provider wiring plus the narrow deletion guard.
+- Did not edit plan checkboxes, .omo/boulder.json, or .omo/start-work/ledger.jsonl.
+- Did not implement T30 navigation, T40 settings, or T21 subscriptions.
+
+Implementation notes:
+- LittleAgentsExtensionCommandsProvider now owns readonly fields for AgentStore, ProviderStore, ISecretStore, OpenAiChatClient, and RunSessionCoordinator.
+- Constructor now builds AgentsListPage with those dependencies and keeps TopLevelCommands() returning _commands.
+- LittleAgentsExtension/Pages/LittleAgentsExtensionPage.cs was deleted.
+- Test guard asserts typeof(LittleAgentsExtensionCommandsProvider).Assembly.GetType("LittleAgentsExtension.LittleAgentsExtensionPage") is null.
+
+Verification commands/results:
+- Command: dotnet test "LittleAgentsExtension.Tests\LittleAgentsExtension.Tests.csproj" -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"
+  Result: EXITCODE=0. Test run passed: 35 passed, 0 failed, 0 skipped. Build output included pre-existing warnings only.
+- Command: dotnet build "LittleAgentsExtension\LittleAgentsExtension.csproj" -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"
+  Result: EXITCODE=0. Build succeeded with 0 warnings and 0 errors.
+- Command: Test-Path "LittleAgentsExtension\Pages\LittleAgentsExtensionPage.cs"; "EXITCODE=$LASTEXITCODE"
+  Result: False.
+- Command: Select-String -Path "LittleAgentsExtension\LittleAgentsExtensionCommandsProvider.cs" -Pattern "new AgentsListPage|AgentStore|ProviderStore|SecretStoreFactory.Create|OpenAiChatClient|RunSessionCoordinator|T40" | ForEach-Object { $_.Line }; "EXITCODE=$LASTEXITCODE"
+  Result: matched AgentStore, ProviderStore, OpenAiChatClient, RunSessionCoordinator, SecretStoreFactory.Create, and new AgentsListPage in the provider source.
+- Command: Get-ChildItem -Path . -Recurse -File -Include *.cs | Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } | Select-String -Pattern "LittleAgentsExtensionPage" | ForEach-Object { $_.Path + ':' + $_.LineNumber + ':' + $_.Line.Trim() }; "EXITCODE=$LASTEXITCODE"
+  Result: only LittleAgentsExtension.Tests\LittleAgentsExtensionCommandsProviderTests.cs matched, via the intentional TDD guard string literal.
+
+Manual QA:
+- F5 / Command Palette smoke was not run here; it is required after the orchestrator applies this change.
+
+Adversarial classes covered:
+- stale_state
+- misleading_success_output
+- dirty_worktree/no git limitation
+- stale generated/cached artifact
+- runtime_COM_reload_regression
+- hung_commands
+
+Cleanup:
+- Deleted the obsolete page file.
+
+Risks:
+- Manual re-smoke is still needed to prove the Command Palette now opens AgentsListPage.
+Manual smoke addendum - 2026-06-21
+
+User reran F5/Reload after T23 wiring and stable command identity fix.
+
+Observed:
+- Reload crash: no
+- AgentsListPage appeared: yes
+- Three pinned items visible: yes
+
+Result: T23 manual acceptance is satisfied. The T20-specific smoke should still confirm the agent glyph and pinned item bottom placement before T20 is checked off.

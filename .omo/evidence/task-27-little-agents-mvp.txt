@@ -1,0 +1,57 @@
+task: T27 ProviderEditFormPage scaffold
+timestamp: 2026-06-20
+scope:
+  changed:
+    - LittleAgentsExtension/Pages/Providers/ProviderEditFormPage.cs
+    - LittleAgentsExtension/Pages/Providers/.gitkeep removed
+  not_changed:
+    - .omo/boulder.json
+    - .omo/start-work/ledger.jsonl
+    - .omo/plans/little-agents-mvp.md
+
+implementation:
+  page_type: internal sealed partial class ProviderEditFormPage : ContentPage
+  ctor: ProviderEditFormPage(ProviderStore providers, ISecretStore secrets, ProviderDef? existing)
+  title: existing == null ? "New provider" : "Edit provider"
+  icon: new IconInfo("\uE968")
+  content: GetContent returns the provider edit form only
+  commands_added: false
+  t28_fields_or_submit_logic_added: false
+  placeholder_decision: Created the thinnest compile-only ProviderEditForm : FormContent placeholder in ProviderEditFormPage.cs because T28 has not implemented the real Adaptive Card form yet.
+
+manual_qa:
+  channel: data-shaped artifact
+  result: ProviderEditFormPage.cs was inspected after edit; it contains only the scaffold, required constructor/title/icon/GetContent members, and no submit/actions/API-key fields.
+  line_count: 26
+  gitkeep_cleanup: LittleAgentsExtension/Pages/Providers/.gitkeep absent after real provider page code was added.
+
+verification:
+  - command: dotnet build LittleAgentsExtension/LittleAgentsExtension.csproj -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"
+    result: EXITCODE=0; build succeeded with 0 errors and 3 pre-existing warnings: CS8424 in Llm/ILlmChatClient.cs, CsWinRT1028 in generated Windows.Win32.GlobalFreeSafeHandle.g.cs, CA1822 in Llm/ClipboardReader.cs.
+  - command: (Get-Content LittleAgentsExtension/Pages/Providers/ProviderEditFormPage.cs).Count
+    result: 26
+  - command: Select-String -Path LittleAgentsExtension/Pages/Providers/ProviderEditFormPage.cs -Pattern "ProviderEditFormPage|ContentPage|ProviderStore|ISecretStore|ProviderDef|New provider|Edit provider|E968|GetContent"
+    result: matches found for ProviderEditFormPage, ContentPage, ProviderStore, ISecretStore, ProviderDef, New provider, Edit provider, E968, and GetContent.
+  - command: lsp_diagnostics ProviderEditFormPage.cs
+    result: not run by server; csharp LSP is not installed and prior user decision declined installation.
+  - command: git status --short
+    result: fatal: not a git repository (or any of the parent directories): .git
+
+adversarial_classes:
+  stale_state: re-read plan T27/T28 and ProviderEditFormPage.cs after edits before claiming completion.
+  misleading_success_output: recorded explicit EXITCODE=0 from build command instead of relying only on success text.
+  dirty_worktree/no_git_limitation: git status reports this workspace is not a git repository; no commit attempted.
+  stale_generated_cached_artifact: ran a fresh Debug x64 build after creating the scaffold.
+  UI_scope_creep: no styling, commands, Adaptive Card fields, apiKey handling, or SubmitForm logic added.
+  hung_commands: build used the required non-interactive command and completed in 7.77 seconds.
+
+cleanup:
+  removed_obsolete_gitkeep: true
+
+risks:
+  - ProviderEditForm is intentionally compile-only until T28 replaces/extends it with the Adaptive Card form and submit logic.
+  - Build warnings are outside T27 scope and pre-existed this scaffold task.
+
+addendum_t28:
+  timestamp: 2026-06-20
+  note: T28 replaced the ProviderEditForm compile-only placeholder with the Adaptive Card form and submit logic. The T27 page shell remains ProviderEditFormPage : ContentPage with the same constructor, title/icon behavior, and GetContent returning the form.

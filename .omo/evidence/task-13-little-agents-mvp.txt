@@ -1,0 +1,17 @@
+T13 evidence
+
+Baseline
+- Missing file check: `Test-Path ...\LittleAgentsExtension.Tests\SecretStoreContractTests.cs` => `False`
+- Filtered test baseline: `dotnet test LittleAgentsExtension.Tests/LittleAgentsExtension.Tests.csproj --filter "FullyQualifiedName~SecretStoreContractTests" 2>&1; "EXITCODE=$LASTEXITCODE"`
+- Result before edit: 0 matching tests, exit code 0
+
+Implementation verification
+- Filtered test run: `dotnet test LittleAgentsExtension.Tests/LittleAgentsExtension.Tests.csproj --filter "FullyQualifiedName~SecretStoreContractTests" 2>&1; "EXITCODE=$LASTEXITCODE"`
+- Result: 4 passed, 0 failed, 0 skipped, exit code 0
+
+Source hygiene check
+- Command: `Select-String -Path "LittleAgentsExtension.Tests/SecretStoreContractTests.cs" -Pattern "PasswordVault|sk-|apiKey|Set\(|TryGet\(|Delete\("`
+- Result: no `PasswordVault` or `sk-` occurrences in the test file; `apiKey` only appears in the `ISecretStore` contract signature and the in-memory store implementation
+
+Notes
+- The contract tests use an in-memory `ISecretStore` double only.

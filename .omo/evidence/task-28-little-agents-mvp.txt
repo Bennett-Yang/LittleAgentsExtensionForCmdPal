@@ -1,0 +1,77 @@
+task: T28 ProviderEditForm Adaptive Card with secret split
+timestamp: 2026-06-20
+scope:
+  changed:
+    - LittleAgentsExtension/Pages/Providers/ProviderEditFormPage.cs
+    - .omo/evidence/task-28-little-agents-mvp.txt
+    - .omo/evidence/task-27-little-agents-mvp.txt (addendum only)
+  not_changed:
+    - .omo/boulder.json
+    - .omo/start-work/ledger.jsonl
+    - .omo/plans/little-agents-mvp.md
+
+implementation:
+  adaptive_card_version: "1.6"
+  fields:
+    - Input.Text id=Name isRequired=true
+    - Input.Text id=BaseUrl isRequired=true style=url placeholder=https://api.openai.com/v1
+    - BaseUrl hint: Include the /v1 (or your provider's API root path). Examples: https://api.openai.com/v1 · https://openrouter.ai/api/v1 · http://localhost:11434/v1
+    - Input.Text id=ApiKey style=password; empty by default in edit mode
+    - Input.Text id=DefaultModel optional
+  submit_flow:
+    - Parse SubmitForm payload with JsonNode.
+    - Validate Name and absolute http/https BaseUrl.
+    - On create, empty ApiKey returns CommandResult.ShowToast("API key is required") with KeepOpen.
+    - On edit, empty ApiKey leaves the existing secret untouched.
+    - ProviderDef(providerId, Name, BaseUrl, DefaultModel) is upserted through ProviderStore.
+    - ApiKey is sent to ISecretStore.Set only when non-empty.
+    - Debug-only assertion reads providers.json and asserts the submitted apiKey is absent.
+  tls_posture: no certificate-bypass code added.
+  styling: no styling or design tokens invented; used Toolkit FormContent/Adaptive Card structure only.
+
+verification:
+  - command: dotnet build LittleAgentsExtension/LittleAgentsExtension.csproj -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"
+    result: EXITCODE=0; build succeeded with 0 errors and 3 pre-existing warnings: CS8424 in Llm/ILlmChatClient.cs, CsWinRT1028 in generated Windows.Win32.GlobalFreeSafeHandle.g.cs, CA1822 in Llm/ClipboardReader.cs. An initial implementation produced IL2026/IL3050 warnings from JsonSerializer.Serialize string quoting; fixed by using JsonEncodedText before final build.
+  - command: Select-String -Path "LittleAgentsExtension\Pages\Providers\ProviderEditFormPage.cs" -Pattern 'Name|BaseUrl|ApiKey|DefaultModel|style":"password|style":"url|https://api.openai.com/v1|openrouter|localhost:11434'
+    result: matches found for Name, BaseUrl, ApiKey, DefaultModel, style:"password", style:"url", https://api.openai.com/v1, openrouter, and localhost:11434.
+  - command: Select-String -Path "LittleAgentsExtension\Pages\Providers\ProviderEditFormPage.cs" -Pattern 'secrets.Set|providers.Upsert|ProviderDef|ShowToast\("API key is required"|Debug.Assert|File.ReadAllText'
+    result: matches found for ProviderDef, _providers.Upsert, _secrets.Set, CommandResult.ShowToast("API key is required"), Debug.Assert, and File.ReadAllText.
+  - command: $matches = Get-ChildItem -Path "LittleAgentsExtension" -Recurse -Filter "*.cs" | Select-String -Pattern 'ServerCertificateCustomValidationCallback|DangerousAcceptAnyServerCertificateValidator'; $matches; "COUNT=$(@($matches).Count)"
+    result: COUNT=0.
+  - command: $matches = Select-String -Path "LittleAgentsExtension\Storage\Models.cs","LittleAgentsExtension\Storage\ProviderStore.cs" -Pattern 'apiKey|ApiKey|Secret|Password'; $matches; "COUNT=$(@($matches).Count)"
+    result: COUNT=0.
+  - command: dotnet test LittleAgentsExtension.Tests/LittleAgentsExtension.Tests.csproj -c Debug -p:Platform=x64 --no-build 2>&1; "EXITCODE=$LASTEXITCODE"
+    result: EXITCODE=0; 10 tests passed, 0 failed, 0 skipped.
+  - command: lsp_diagnostics ProviderEditFormPage.cs
+    result: not run by server; csharp LSP is not installed and prior user decision declined installation.
+  - command: $matches = Get-ChildItem "$env:LOCALAPPDATA\Packages\*\LocalState\LittleAgents" -Recurse -File -ErrorAction SilentlyContinue | Select-String -Pattern "sk-test-METIS-CANARY"; $matches; "COUNT=$(@($matches).Count)"
+    result: COUNT=0; canary was not created through UI in this environment.
+  - command: git status --short
+    result: fatal: not a git repository (or any of the parent directories): .git
+
+manual_qa:
+  channel: data-shaped artifact
+  canary_smoke_status: manual_smoke_unavailable
+  reason: Command Palette host UI was not available in this worker environment, so I could not create a provider through the rendered form.
+  data_shaped_checks:
+    - Source inspection confirms create requires non-empty ApiKey and edit allows empty ApiKey without calling ISecretStore.Set.
+    - Source inspection confirms ProviderDef has no apiKey-shaped field and ProviderStore persists only ProvidersFile/ProviderDef.
+    - LocalState canary grep for sk-test-METIS-CANARY returned COUNT=0, but this was not post-UI-create evidence.
+
+adversarial_classes:
+  secret_hygiene/api_key_leakage: apiKey is never assigned to ProviderDef; it is passed only to ISecretStore.Set when non-empty; ProviderDef/ProviderStore grep for apiKey/ApiKey/Secret/Password returned 0.
+  malformed_input/missing_required_fields: SubmitForm validates Name, absolute http/https BaseUrl, and create-mode ApiKey before persistence.
+  stale_state: re-read T27/T28/T29/T31 plan context and ProviderEditFormPage.cs before editing and before evidence.
+  misleading_success_output: recorded explicit EXITCODE=0 for build/test and COUNT=0 for negative greps.
+  dirty_worktree/no_git_limitation: git status reports this workspace is not a git repository; no commit attempted.
+  UI_scope_creep: did not implement T29 delete, T30 navigation, or T31 ProvidersListPage; no styling/tokens added.
+  manual_smoke_unavailable: UI host smoke could not be run; recorded as risk with data-shaped checks.
+  hung_commands: build/test/grep commands completed within their timeouts.
+
+cleanup:
+  temp_files_created: false
+  commits_created: false
+
+risks:
+  - Manual UI create/edit smoke was unavailable, so rendered Adaptive Card behavior in the Command Palette host was not directly exercised.
+  - Debug assertion checks the default LocalState providers.json path because ProviderStore does not expose its active path.

@@ -1,0 +1,19 @@
+Baseline:
+- Missing file baseline recorded for `LittleAgentsExtension/Llm/ILlmChatClient.cs`.
+
+Commands:
+- `dotnet build LittleAgentsExtension/LittleAgentsExtension.csproj -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"`
+- `(Get-Content LittleAgentsExtension/Llm/ILlmChatClient.cs).Count`
+- `Select-String -Path LittleAgentsExtension/Llm/ILlmChatClient.cs -Pattern "OpenAI\.|Microsoft\.Extensions\.AI"`
+- `Select-String -Path LittleAgentsExtension/Llm/ILlmChatClient.cs -Pattern "interface ILlmChatClient|IAsyncEnumerable<string>|StreamAsync|ChatRequest|ProviderDef|EnumeratorCancellation|CancellationToken|string apiKey"`
+
+Results:
+- `dotnet build LittleAgentsExtension/LittleAgentsExtension.csproj -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"`
+  - First run failed with `CS0246` because `ProviderDef` was not in scope.
+  - Second run succeeded with `EXITCODE=0` and `0 warnings, 0 errors`.
+- `(Get-Content LittleAgentsExtension/Llm/ILlmChatClient.cs).Count`
+  - `11`
+- `Select-String -Path LittleAgentsExtension/Llm/ILlmChatClient.cs -Pattern "OpenAI\.|Microsoft\.Extensions\.AI"`
+  - no output
+- `Select-String -Path LittleAgentsExtension/Llm/ILlmChatClient.cs -Pattern "interface ILlmChatClient|IAsyncEnumerable<string>|StreamAsync|ChatRequest|ProviderDef|EnumeratorCancellation|CancellationToken|string apiKey"`
+  - matched the expected interface signature tokens.

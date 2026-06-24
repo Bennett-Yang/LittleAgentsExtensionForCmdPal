@@ -1,0 +1,22 @@
+T44 evidence - ClipboardReader spike
+
+Baseline
+- No `LittleAgentsExtension/Llm/ClipboardReader.cs` existed before implementation.
+- No `ClipboardReaderTests` existed before implementation.
+
+Implemented
+- Added `LittleAgentsExtension/Llm/ClipboardReader.cs`.
+- Added `LittleAgentsExtension.Tests/ClipboardReaderTests.cs` with a test-only `IClipboardSource` shim.
+- Added `LittleAgentsExtension/Properties/AssemblyInfo.cs` for `InternalsVisibleTo`.
+- Added `LittleAgentsExtension/NativeMethods.txt` for CsWin32 fallback generation.
+- Added `Microsoft.Windows.CsWin32` to the app project.
+- Added `WindowsSdkPackageVersion` to the test project so the app assembly and test host reference the same Windows SDK line.
+
+Verification
+- `dotnet test .\LittleAgentsExtension.Tests\LittleAgentsExtension.Tests.csproj --filter "FullyQualifiedName~ClipboardReaderTests" 2>&1; "EXITCODE=$LASTEXITCODE"`
+- Result: 3 passed, 0 failed, exit code 0.
+- `Select-String -Path .\LittleAgentsExtension\Llm\ClipboardReader.cs -Pattern "Contains\(StandardDataFormats.Text\)|GetTextAsync|OpenClipboard|CF_UNICODETEXT"`
+
+Manual smoke
+- Not run in this worker.
+- See `.omo/evidence/spike-clipboard-mta.md` for the required desktop smoke steps and placeholder.

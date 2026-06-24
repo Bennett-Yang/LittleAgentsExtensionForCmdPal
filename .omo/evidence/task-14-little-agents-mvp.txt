@@ -1,0 +1,17 @@
+T14 evidence
+
+Baseline
+- Missing file check: `Test-Path LittleAgentsExtension/Llm/ChatRequest.cs` => `False`
+
+Implementation verification
+- Command: `dotnet build LittleAgentsExtension/LittleAgentsExtension.csproj -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"`
+- Result: build succeeded, 2 warnings, 0 errors, `EXITCODE=0`
+- Command: `(Get-Content LittleAgentsExtension/Llm/ChatRequest.cs).Count`
+- Result: `5`
+- Command: `Select-String -Path LittleAgentsExtension/Llm/ChatRequest.cs -Pattern "tools|function|image|audio|response_format"`
+- Result: 0 matches
+- Command: `Select-String -Path LittleAgentsExtension/Llm/ChatRequest.cs -Pattern "record ChatRequest|record ChatMessage|enum ChatRole|System|User|Assistant"`
+- Result: matched the new DTO definitions and enum literals only
+
+Notes
+- No `.gitkeep` file was present in `LittleAgentsExtension/Llm`, so no cleanup was needed.

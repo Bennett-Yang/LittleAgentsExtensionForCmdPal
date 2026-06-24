@@ -1,0 +1,35 @@
+Task 8 evidence
+
+Baseline
+- Before implementation, `LittleAgentsExtension\Storage\AgentStore.cs` was absent.
+- Before implementation, `LittleAgentsExtension\Common\PathHelper.cs` was absent.
+
+Verification commands
+- `dotnet build "LittleAgentsExtension/LittleAgentsExtension.csproj" -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"`
+  - Result: build succeeded, `EXITCODE=0`
+  - Output: 0 warnings, 0 errors
+- `(Get-Content "LittleAgentsExtension/Storage/AgentStore.cs").Count`
+  - Result: `86`
+- `Select-String -Path "LittleAgentsExtension/Storage/AgentStore.cs" -Pattern "Load\(|Save\(|Upsert\(|Delete\(|Changed|File.Move|LittleAgentsJsonContext|PathHelper.LocalStateDir|lock"`
+  - Matched `Load()`, `Save()`, `Upsert()`, `Delete()`, `Changed`, `File.Move`, `LittleAgentsJsonContext.Default.AgentsFile`, `PathHelper.LocalStateDir`, and `lock`
+- `Select-String -Path "LittleAgentsExtension/Common/PathHelper.cs" -Pattern "LocalStateDir|ApplicationData.Current.LocalFolder.Path|LittleAgents|Directory.CreateDirectory"`
+  - Matched `LocalStateDir`, `ApplicationData.Current.LocalFolder.Path`, `LittleAgents`, and `Directory.CreateDirectory`
+
+Cleanup receipt
+- No temp files were left behind.
+
+Verifier fix follow-up
+- `dotnet build "LittleAgentsExtension/LittleAgentsExtension.csproj" -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"`
+  - Result: build succeeded, `EXITCODE=0`
+  - Output: existing warnings only (`CsWinRT1028`, `CA1822`)
+- `(Get-Content "LittleAgentsExtension/Storage/AgentStore.cs").Count`
+  - Result: `93`
+- `Select-String -Path "LittleAgentsExtension/Storage/AgentStore.cs" -Pattern "InvalidDataException|JsonException|Load\(|File.Move|LittleAgentsJsonContext|PathHelper.LocalStateDir|lock"`
+  - Matched `JsonException` catch and `InvalidDataException` rethrow with inner exception, plus atomic write symbols
+- Corrupt JSON probe
+  - Not run: the shell could not spawn the nested PowerShell probe command and returned `EPERM` before execution. Source-level proof and build verification were used instead.
+
+Task 11 addendum
+- `LittleAgentsExtension.Tests/AgentStoreTests.cs` now covers the corrupt-JSON path with a real temp-directory probe, plus empty load, round-trip, upsert, delete, and concurrent save cases.
+- `AgentStore` now has an internal store-path constructor seam so tests can avoid the real `LocalFolder` path.
+- The prior T8 human-review blocker is now likely confirmable because the corrupt-JSON behavior is exercised by an actual test, not just source inspection.

@@ -1,0 +1,55 @@
+Task 22 evidence - AgentsListPage pinned placeholder commands
+
+Changed files in scope:
+- LittleAgentsExtension/Pages/Agents/AgentsListPage.cs
+- .omo/evidence/task-22-little-agents-mvp.txt
+
+Implementation evidence:
+- Pinned items remain + New Agent, Manage Providers, and Settings.
+- Pinned rows still use PinnedPlaceholderCommand, an explicit nested InvokableCommand with stable Id and Name.
+- Pinned command Invoke returns CommandResult.ShowToast("Wired in T30").
+- No AgentEditFormPage, ProvidersListPage, SettingsPage, or GoToPage real navigation was added.
+- No NoOpCommand or anonymous command placeholder was introduced.
+
+Command:
+dotnet build "LittleAgentsExtension/LittleAgentsExtension.csproj" -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"
+Result:
+- Restore: all projects up-to-date.
+- Build output: LittleAgentsExtension.dll written under bin/x64/Debug/net9.0-windows10.0.26100.0/win-x64.
+- Warnings: 3 existing warnings reported (CS8424 in ILlmChatClient.cs, CsWinRT1028 in generated GlobalFreeSafeHandle.g.cs, CA1822 in ClipboardReader.cs).
+- Errors: 0.
+- EXITCODE=0.
+
+Command:
+(Get-Content "LittleAgentsExtension/Pages/Agents/AgentsListPage.cs").Count
+Result:
+125
+
+Command:
+$path = "LittleAgentsExtension/Pages/Agents/AgentsListPage.cs"; $text = Get-Content $path -Raw; $getItems = [regex]::Match($text, 'public override IListItem\[\] GetItems\(\)(?s).*?\n    }').Value; [pscustomobject]@{ agentsChanged = $text.Contains('agents.Changed'); providersChanged = $text.Contains('providers.Changed'); cachedAgentsLoad = $text.Contains('_cachedAgents = agents.Load()'); cachedProvidersLoad = $text.Contains('_cachedProviders = providers.Load()'); raiseItemsChanged = ([regex]::Matches($text, 'RaiseItemsChanged\(-1\)').Count); getItemsCallsAgentsLoad = $getItems.Contains('agents.Load()'); stablePinnedId = $text.Contains('Id = $"little-agents.pinned.{GetStableKey(title)}"'); toastWiredInT30 = $text.Contains('CommandResult.ShowToast("Wired in T30")'); realNavigation = [regex]::IsMatch($text, 'AgentEditFormPage|ProvidersListPage|GoToPage|SettingsPage') } | Format-List
+Result:
+agentsChanged           : True
+providersChanged        : True
+cachedAgentsLoad        : True
+cachedProvidersLoad     : True
+raiseItemsChanged       : 3
+getItemsCallsAgentsLoad : False
+stablePinnedId          : True
+toastWiredInT30         : True
+realNavigation          : False
+
+Additional source check:
+- grep search found CommandResult.ShowToast usage in AgentsListPage.cs and no scoped matches for NoOpCommand in AgentsListPage.cs.
+- code inspection confirmed Id = $"little-agents.pinned.{GetStableKey(title)}" and Name = title are preserved.
+
+Manual QA:
+- manual_smoke_unavailable: Command Palette desktop UI was not run from this worker session.
+- T22 acceptance includes click smoke for toast behavior, so this likely needs human/host smoke before checkbox checkoff even though source/build evidence is clean.
+
+Adversarial notes:
+- runtime_COM_reload_regression: explicit stable InvokableCommand identity was preserved; no NoOpCommand or anonymous command was introduced.
+- UI_scope_creep: no real navigation or new pages were added.
+- misleading_success_output: build exit code was recorded explicitly as EXITCODE=0.
+- dirty_worktree/no git limitation: git status showed the workspace contents as untracked, so git diff could not be used as authoritative evidence.
+- manual_smoke_unavailable: host click smoke was not available in this worker environment.
+- hung_commands: no command hung; build completed in about 10 seconds.

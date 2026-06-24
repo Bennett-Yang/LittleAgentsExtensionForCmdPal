@@ -1,0 +1,26 @@
+Task 9 evidence
+
+Baseline
+- Before implementation, `LittleAgentsExtension\Storage\ProviderStore.cs` was absent.
+- Missing placeholder check: `LittleAgentsExtension\Storage\.gitkeep` was not present.
+
+Verification commands
+- `dotnet build LittleAgentsExtension/LittleAgentsExtension.csproj -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"`
+  - Result: build succeeded, `EXITCODE=0`
+  - Output: 0 warnings, 0 errors
+- `(Get-Content "LittleAgentsExtension/Storage/ProviderStore.cs").Count`
+  - Result: `93`
+- `Select-String -Path "LittleAgentsExtension/Storage/ProviderStore.cs" -Pattern "providers.json|ProvidersFile|File.Move|PathHelper.LocalStateDir|lock|InvalidDataException|JsonException"`
+  - Matched `providers.json`, `ProvidersFile`, `File.Move`, `PathHelper.LocalStateDir`, `lock`, `JsonException`, and `InvalidDataException`
+- `Select-String -Path "LittleAgentsExtension/Storage/ProviderStore.cs" -Pattern "apiKey|ApiKey|Secret|Password"`
+  - Result: 0 matches
+
+Corrupt JSON proof
+- Source proof only: `Load()` catches `JsonException` and rethrows `InvalidDataException` with the original exception attached, matching the corrupt JSON contract.
+
+Cleanup receipt
+- No temp files were left behind.
+
+Addendum after T12
+- `ProviderStore` now has an internal store-path constructor so the new tests can use a fresh temp directory without touching the real `LocalFolder` path.
+- `ProviderStoreTests.cs` was added and the targeted test slice now passes, which resolves the verifier blocker for T9 without marking T9 complete.

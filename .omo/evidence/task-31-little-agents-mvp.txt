@@ -1,0 +1,31 @@
+Task 31 evidence - ProvidersListPage DynamicListPage
+
+Changed source:
+- LittleAgentsExtension/Pages/Providers/ProvidersListPage.cs
+
+Build:
+- Command: dotnet build "LittleAgentsExtension/LittleAgentsExtension.csproj" -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"
+- Result: EXITCODE=0; build succeeded. Warnings observed were existing analyzer/source-generator warnings outside ProvidersListPage.cs: CS8424 in Llm/ILlmChatClient.cs, CsWinRT1028 in generated GlobalFreeSafeHandle.g.cs, and CA1822 in Llm/ClipboardReader.cs.
+
+Tests:
+- Command: dotnet test 2>&1; "EXITCODE=$LASTEXITCODE"
+- Result: EXITCODE=0; 35 passed, 0 failed, 0 skipped. Test project emitted existing analyzer naming/allocation warnings.
+
+Diagnostics:
+- Command: lsp_diagnostics on LittleAgentsExtension/Pages/Providers/ProvidersListPage.cs
+- Result: C# LSP server is not installed and was previously declined, so source diagnostics were unavailable.
+
+Source checks:
+- Line count: 182 lines, under the 250-line limit.
+- providers.Changed subscription: present; handler refreshes _cachedProviders = providers.Load() and calls RaiseItemsChanged(-1).
+- Cached GetItems: GetItems() reads _cachedProviders and does not call providers.Load().
+- Search: MatchesSearch filters Name and BaseUrl with StringComparison.OrdinalIgnoreCase.
+- Navigation targets: provider edit uses ProviderEditFormPage(... existing: provider); pinned + New Provider uses ProviderEditFormPage(... existing: null).
+- Stable identities: page-as-command Toolkit pattern is used with stable Id/Name values for edit, new, and delete page commands.
+- Delete context command: per-provider MoreCommands includes a CommandContextItem titled Delete wrapping ConfirmDeleteProviderPage.
+- Delete orphan block: ConfirmDeleteProviderForm loads _agents.Load(), filters agent.ProviderId == _provider.Id, includes Cannot delete, orphans.Length count, first three names via Take(3), and the ", ..." suffix for more than three.
+- Delete cleanup: successful delete calls _providers.Delete(_provider.Id), _secrets.Delete(_provider.Id), then CommandResult.GoBack().
+- KeepOpen toast: orphan-block returns CommandResult.ShowToast(new ToastArgs { Result = CommandResult.KeepOpen() }).
+
+Scope notes:
+- Did not edit .omo/plans/little-agents-mvp.md, .omo/start-work/ledger.jsonl, .omo/boulder.json, AgentsListPage.cs, T29 evidence, or T29 checklist state.

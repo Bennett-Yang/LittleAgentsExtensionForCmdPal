@@ -1,0 +1,49 @@
+Task 25 evidence - AgentEditForm Adaptive Card + SubmitForm
+
+Changed source:
+- LittleAgentsExtension/Pages/Agents/AgentEditFormPage.cs
+
+Source checks:
+- LINECOUNT=49
+- HAS_AC16=True
+- HAS_NAME=True
+- HAS_SYSTEM=True
+- HAS_TEMPLATE=True
+- HAS_PROVIDER=True
+- HAS_MODEL=True
+- HAS_SAVE=True
+- HAS_PARSE=True
+- HAS_VALIDATION=True
+- HAS_UPSERT=True
+- HAS_TAGS=True
+
+Behavior covered by source checks:
+- Adaptive Card version 1.6 includes Name, SystemPrompt, UserTemplate, ProviderId choices from providers.Load(), Model placeholder, Icon, Tags, and Save submit action.
+- SubmitForm parses JsonNode.Parse(payload), keeps the form open with toast messages for empty Name, empty ProviderId, and blank Model with no provider default.
+- Blank Model resolves from the selected provider DefaultModel before AgentStore.Upsert; empty Model is not persisted.
+- Tags parse from comma-separated input using trimmed non-empty entries.
+- AgentDef Id uses existing?.Id or Guid.NewGuid().ToString("N").
+
+Verification commands/results:
+- dotnet build "LittleAgentsExtension/LittleAgentsExtension.csproj" -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"
+- Result: EXITCODE=0; build succeeded with 3 pre-existing warnings (CS8424 in ILlmChatClient.cs, CsWinRT1028 generated GlobalFreeSafeHandle, CA1822 in ClipboardReader.cs); 0 errors.
+- PowerShell source verification command checked line count and required strings for AgentEditFormPage, constructor, title, icon, GetContent, AgentEditForm, Adaptive Card fields, submit flow, validation, upsert, and tags.
+- Result: EXITCODE=0; all checks True.
+- dotnet test "LittleAgentsExtension.Tests/LittleAgentsExtension.Tests.csproj" -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"
+- Result: EXITCODE=0; 35 passed, 0 failed, 0 skipped.
+
+Notes:
+- Initial parallel test attempt exited 1 because it competed with the simultaneous build for the same obj DLL (CSC CS2012 file in use). The final sequential test run passed with EXITCODE=0.
+- Manual Command Palette form opening was not performed because T30 navigation is explicitly out of scope and the new page is not wired into AgentsListPage yet.
+
+Fix addendum after independent verification:
+- Issue: verifier rejected T25 because edit-mode prefill used direct Adaptive Card value fields only; plan explicitly requires DataJson prefilled when existing != null.
+- Change: AgentEditForm now assigns DataJson when existing is not null, while keeping the file at 49 lines.
+- command: lsp_diagnostics LittleAgentsExtension/Pages/Agents/AgentEditFormPage.cs
+  result: not run by server; csharp LSP is not installed and prior user decision declined installation.
+- command: dotnet build "LittleAgentsExtension/LittleAgentsExtension.csproj" -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"
+  result: EXITCODE=0; build succeeded with 3 pre-existing warnings and 0 errors.
+- command: source invariant check for LineCount, DataJson, forbidden ClipboardReader/apiKey/Secret/ChatRunPage, JsonNode.Parse, KeepOpen toast
+  result: LineCount=49; HasDataJson=True; HasClipboardReader=False; HasApiKey=False; HasSecret=False; HasChatRunPage=False; HasSubmitParse=True; HasKeepOpenToastResult=True.
+- command: dotnet test "LittleAgentsExtension.Tests/LittleAgentsExtension.Tests.csproj" -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"
+  result: EXITCODE=0; 35 passed, 0 failed, 0 skipped.

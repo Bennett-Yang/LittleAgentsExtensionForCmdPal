@@ -1,0 +1,115 @@
+T20 evidence - AgentsListPage DynamicListPage
+
+Changed files:
+- LittleAgentsExtension/Pages/Run/RunSessionCoordinator.cs
+- LittleAgentsExtension/Pages/Agents/AgentsListPage.cs
+- .omo/evidence/task-20-little-agents-mvp.txt
+
+Cleanup:
+- Removed obsolete LittleAgentsExtension/Pages/Run/.gitkeep because RunSessionCoordinator.cs now exists in that folder.
+- Removed obsolete LittleAgentsExtension/Pages/Agents/.gitkeep because AgentsListPage.cs now exists in that folder.
+
+Scope boundaries:
+- Implemented only the T20 compile stub and initial AgentsListPage.
+- Did not edit plan checkboxes, .omo/boulder.json, or .omo/start-work/ledger.jsonl.
+- Did not implement T21 Changed subscriptions/cache refresh.
+- Did not implement T30/T40 real navigation or settings behavior.
+- Included T20/T22 placeholder command state only so pinned items render and return ShowToast("Wired in T30").
+
+Implementation notes:
+- RunSessionCoordinator is an empty compile stub: internal sealed class RunSessionCoordinator { }.
+- AgentsListPage constructor takes AgentStore, ProviderStore, ISecretStore, ILlmChatClient, RunSessionCoordinator.
+- Title is "Little Agents" and Icon is new IconInfo("\uE945").
+- _cachedAgents = agents.Load() and _cachedProviders = providers.Load() are initialized once in the constructor for T20.
+- GetItems filters _cachedAgents by Name, Tags, or ProviderId using OrdinalIgnoreCase substring matching.
+- Agent rows use NoOpCommand until T37 wires ChatRunPage navigation.
+- Pinned rows are always appended after filtered agents: + New Agent, Manage Providers, Settings.
+
+Verification commands/results:
+- Command: dotnet build "LittleAgentsExtension/LittleAgentsExtension.csproj" -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"
+  Result: EXITCODE=0. Build succeeded with 3 warnings: pre-existing ILlmChatClient.cs CS8424, generated GlobalFreeSafeHandle.g.cs CsWinRT1028, ClipboardReader.cs CA1822. 0 errors.
+- Command: Test-Path "LittleAgentsExtension/Pages/Run/RunSessionCoordinator.cs"
+  Result: True
+- Command: (Get-Content "LittleAgentsExtension/Pages/Agents/AgentsListPage.cs").Count
+  Result: 87
+- Command: Select-String -Path "LittleAgentsExtension/Pages/Agents/AgentsListPage.cs" -Pattern "DynamicListPage|UpdateSearchText|RaiseItemsChanged\(-1\)|_cachedAgents|GetItems|NoOpCommand|ShowToast|New Agent|Manage Providers|Settings|E945"
+  Result: matched DynamicListPage, E945, _cachedAgents, agents.Load() constructor cache, UpdateSearchText, RaiseItemsChanged(-1), GetItems, New Agent, Manage Providers, Settings, NoOpCommand, ShowToast.
+- Command: extract GetItems block and count Select-String -Pattern "agents\.Load\("
+  Result: GETITEMS_AGENTS_LOAD_MATCHES=0
+- Command: lsp_diagnostics on AgentsListPage.cs and RunSessionCoordinator.cs
+  Result: C# LSP server is not installed; user previously declined installation, so no LSP diagnostics were available.
+- Command: git status --short
+  Result: fatal: not a git repository (or any of the parent directories): .git
+- Command: Get-ChildItem -LiteralPath "LittleAgentsExtension/Pages/Agents","LittleAgentsExtension/Pages/Run" -Force | ForEach-Object { $_.FullName }
+  Result: only AgentsListPage.cs and RunSessionCoordinator.cs remain in those two folders.
+
+Manual QA:
+- Command Palette F5 + Reload smoke was not run in this headless/non-interactive environment.
+- Data-shaped QA performed through build, source marker grep, line count, scoped folder listing, and GetItems hot-path proof.
+- Risk: needs human review for visual/manual smoke that pinned items appear at the bottom with the Segoe Fluent agent glyph.
+
+Adversarial classes covered:
+- stale_state: cached agents/providers initialized once in constructor; no GetItems disk load.
+- misleading_success_output: build exit code captured explicitly as EXITCODE=0.
+- dirty_worktree/no git limitation: git status reports not a git repository.
+- stale generated/cached artifact: verified source file existence and source markers, not just bin output.
+- UI_scope_creep: no Adaptive Cards, no ChatRunPage reference, no real navigation, no styling/design invention.
+- manual_smoke_unavailable: recorded honestly as needs human review.
+- hung_commands: build completed in 00:00:07.85 and verification commands returned.
+Debug addendum - 2026-06-21 T20 runtime smoke crash
+
+User smoke result: Command Palette Reload crashed before Little Agents page rendered. Runtime stack reported COMException HRESULT 0x800706BE while CmdPal read `ICommand.Id` from a ListItem command.
+
+Hypothesis H1: pinned placeholder rows used `AnonymousCommand(() => { })`, while Microsoft command-results documentation shows ListItem toast placeholders as `AnonymousCommand(null) { Result = CommandResult.ShowToast(...) }`.
+
+Speculative toggle applied for next manual repro: `AgentsListPage.CreatePinnedItem` now uses `new AnonymousCommand(null)` and keeps `Name = title` plus `CommandResult.ShowToast("Wired in T30")`.
+
+Required next evidence: rebuild/deploy, reload Command Palette, and record whether the same HRESULT 0x800706BE crash disappears. If it disappears, H1 is confirmed by toggle; if it persists, continue with H2/H3.
+
+Debug addendum - 2026-06-21 H1 refuted, H2 toggle
+
+User reran reload after the `AnonymousCommand(null)` toggle. The same `ICommand.Id` stack still occurred, followed by repeated `0x800706BA` server-unavailable errors. H1 is refuted.
+
+Important finding: `LittleAgentsExtensionCommandsProvider` still returns `new CommandItem(new LittleAgentsExtensionPage())`, so current reload smoke is exercising the old template page, not `AgentsListPage`. The old page had one `NoOpCommand` row.
+
+Speculative H2 toggle applied for next repro: `LittleAgentsExtensionPage.GetItems()` now uses a nested `TemplatePlaceholderCommand : InvokableCommand` with stable `Id = "little-agents.placeholder.todo"` and `Name = "Placeholder"`, returning `CommandResult.KeepOpen()`.
+
+Required next evidence: rebuild/deploy, reload Command Palette, and record whether the `ICommand.Id` COM crash disappears.
+
+Debug addendum - 2026-06-21 H2 confirmed
+
+User reran reload after replacing the old template page's `NoOpCommand` with explicit `TemplatePlaceholderCommand` carrying stable `Id`/`Name`.
+
+Observed result:
+- Reload crash: no
+- TODO placeholder page visible: yes
+
+Root cause confirmed for the reload crash: this CmdPal host path fails while reading `ICommand.Id` from default/no-op command identity. Stable command identity fixes the COM crash.
+
+Follow-up patch applied to future T20 surface: `AgentsListPage` now uses explicit `InvokableCommand` placeholder classes with stable IDs for agent rows and pinned rows, so T23 wiring should not reintroduce the same command-identity crash.
+
+Important scope note: current top-level provider still opens `LittleAgentsExtensionPage`, so this manual smoke proves the COM crash fix and deployment path, but T20 `AgentsListPage` remains unrendered until T23 rewires the command provider.
+
+Debug addendum - 2026-06-21 T23 re-enables true T20 smoke
+
+T23 rewired `LittleAgentsExtensionCommandsProvider` to open `AgentsListPage` and deleted `LittleAgentsExtensionPage.cs`.
+That means the earlier T20 smoke is now the real `AgentsListPage` path again, so the Command Palette F5 reload smoke should be rerun after this worker change.
+Manual smoke addendum - 2026-06-21 after T23 wiring
+
+User reran F5/Reload after T23 wired `AgentsListPage` as the top-level page.
+
+Observed:
+- Reload crash: no
+- AgentsListPage appeared: yes
+- Three pinned items visible: yes
+
+Remaining T20 manual acceptance details to confirm before checkbox: pinned items are at the bottom, Segoe Fluent agent glyph displays normally, and search input does not crash.
+
+Final manual smoke addendum - 2026-06-21
+
+User confirmed remaining T20 acceptance details:
+- Three pinned items are at the bottom: yes
+- Agent glyph displays normally: yes
+- Typing into the search box does not crash: yes
+
+Result: T20 manual acceptance is satisfied after T23 wiring.

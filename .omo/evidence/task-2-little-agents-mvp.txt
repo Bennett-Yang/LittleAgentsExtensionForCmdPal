@@ -1,0 +1,29 @@
+Task 2 evidence
+
+Baseline snapshot before edit
+- `LittleAgentsExtension/LittleAgentsExtension.csproj` already had `IsAotCompatible=true` and `PublishTrimmed` split by `Debug` vs non-`Debug` configuration.
+- `Directory.Packages.props` centrally pinned `OpenAI` and `Microsoft.Extensions.AI.OpenAI` before the probe.
+
+Final edit applied
+- Added `<PackageReference Include="OpenAI" />`.
+- Added `<PackageReference Include="Microsoft.Extensions.AI.OpenAI" />`.
+- Added `<NoWarn>$(NoWarn);OPENAI001</NoWarn>`.
+- Added Release-only `<TrimmerSingleWarn>` entries for both OpenAI packages.
+
+Verification commands and results
+1. `dotnet build LittleAgentsExtension/LittleAgentsExtension.csproj -c Debug -p:Platform=x64 2>&1 | Select-String "error"`
+   - Result: no matches.
+   - Interpretation: Debug build completed with no error lines in the filtered output.
+2. `Select-String -Path LittleAgentsExtension/LittleAgentsExtension.csproj -Pattern "OpenAI|Microsoft.Extensions.AI.OpenAI|OPENAI001|TrimmerSingleWarn|IsAotCompatible|PublishTrimmed"`
+   - Result: matches on the expected package refs, `OPENAI001` suppression, `IsAotCompatible`, `PublishTrimmed`, and both `TrimmerSingleWarn` entries.
+
+Failure probe
+1. Temporarily removed the `OpenAI` `PackageVersion` entry from `Directory.Packages.props`.
+2. `dotnet restore LittleAgentsExtension/LittleAgentsExtension.csproj 2>&1 | Select-String "NU1604|NU1010|error"`
+   - Result: restore failed with `error NU1010` stating the `OpenAI` `PackageReference` had no matching `PackageVersion` under central package management.
+   - This was the observed failure code for the missing-version probe, not `NU1604`.
+
+Cleanup receipt
+- Restored the `OpenAI` `PackageVersion` entry in `Directory.Packages.props`.
+- No temp files were created.
+- No plan checkbox, Boulder file, or ledger file was edited.

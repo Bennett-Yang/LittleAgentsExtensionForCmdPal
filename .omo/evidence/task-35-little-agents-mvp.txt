@@ -1,0 +1,33 @@
+Task 35 evidence - Run-page commands: Copy result / Copy transcript / Stop / Re-run / Reply
+
+Changed files:
+- LittleAgentsExtension/Pages/Run/ChatRunPage.cs
+- LittleAgentsExtension/Pages/Run/ChatRunPage.Commands.cs
+- LittleAgentsExtension/Pages/Run/WindowsClipboardWriter.cs
+- LittleAgentsExtension.Tests/ChatRunPageCommandsTests.cs
+- .omo/evidence/task-35-little-agents-mvp.txt
+
+Implementation summary:
+- ChatRunPage constructor now calls InitializeCommands().
+- ChatRunPage.Commands.cs adds five CommandContextItem entries: Copy result, Copy transcript, Stop, Re-run, and Reply.
+- Copy result reads _lastAssistantText at Invoke time, copies only when non-empty, and returns a ShowToast result with "Nothing to copy yet" when empty.
+- Copy transcript reads _output.Body at Invoke time and copies through IClipboardWriter.
+- Stop cancels the active CTS or returns a ShowToast result with "Nothing to stop" when no stream is active.
+- Re-run clears _history, _output.Body, and _lastAssistantText before calling StartStream(_initialUserMsg).
+- Reply remains a placeholder for T36 and returns a ShowToast result with "Wired in T36".
+- WindowsClipboardWriter is the only production path that calls Windows.ApplicationModel.DataTransfer.Clipboard.SetContent; command code uses the IClipboardWriter seam.
+
+Automated verification:
+- dotnet test "LittleAgentsExtension.Tests\\LittleAgentsExtension.Tests.csproj" --filter "FullyQualifiedName~ChatRunPageCommandsTests" -c Debug -p:Platform=x64 -> 8 passed, 0 failed, 0 skipped.
+- dotnet test "LittleAgentsExtension.Tests\\LittleAgentsExtension.Tests.csproj" -c Debug -p:Platform=x64 -> 74 passed, 0 failed, 0 skipped.
+- dotnet build "LittleAgentsExtension\\LittleAgentsExtension.csproj" -c Debug -p:Platform=x64 -> 0 warnings, 0 errors.
+
+Independent source checks:
+- ChatRunPage.cs line count remains 243 after adding the constructor hook and ShowToast return value.
+- ChatRunPage.Commands.cs contains the command implementations in a separate partial file and does not use CopyTextCommand.
+- WindowsClipboardWriter.cs is 14 lines and isolates DataPackage.SetText + Clipboard.SetContent behind IClipboardWriter.
+- ChatRunPageCommandsTests.cs covers copy-result success, copy-result empty toast/no clipboard write, copy-transcript body headers, stop no-active toast, stop active CTS cancellation, rerun state/request reset, late-value copy at invoke time, and exposed command titles.
+
+Notes:
+- A parallel Debug build attempt during verification hit the known MSIX appxrecipe file lock while tests were running; rerun sequentially and succeeded with 0 warnings/0 errors.
+- Existing analyzer warnings during test builds are pre-existing/project-wide and not T35 regressions; the final extension Debug build is clean.

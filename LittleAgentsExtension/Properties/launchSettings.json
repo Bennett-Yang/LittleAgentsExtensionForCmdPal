@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "LittleAgentsExtension (Package)": {
+      "commandName": "MsixPackage",
+      "doNotLaunchApp": true
+    },
+    "LittleAgentsExtension (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

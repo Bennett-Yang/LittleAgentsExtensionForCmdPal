@@ -1,0 +1,38 @@
+Task 26 evidence - Agent delete via context command + confirm
+
+Changed source:
+- LittleAgentsExtension/Pages/Agents/AgentsListPage.cs
+- LittleAgentsExtension.Tests/AgentStoreTests.cs
+
+Source checks:
+- AgentsListPage line count: LINECOUNT=217 (<= 250).
+- Agent row context command: MoreCommands=True, CommandContextItem=True, ConfirmDeleteAgentPage=True.
+- Confirmation form/page: ConfirmDeleteAgentForm=True, Delete agent=True.
+- Confirmation actions/data: data=True, confirmed=True, true=True, false=True.
+- Explicit delete gate: _agents.Delete=True, CommandResult.GoBack=True; delete call is inside SubmitForm after IsConfirmed(payload).
+- Placeholder preservation: AgentPlaceholderCommand=True, PinnedPlaceholderCommand=True, Wired in T30=True.
+- No T30/T37 scope creep in AgentsListPage source check: NO_T30_T37_NAV=True for AgentEditFormPage, ProvidersListPage, ChatRunPage references.
+
+Behavior covered by implementation and tests:
+- AgentsListPage stores constructor AgentStore in readonly _agents for row delete confirmation.
+- Each agent row keeps primary AgentPlaceholderCommand behavior and adds MoreCommands with CommandContextItem(CreateDeletePage(agent)) titled Delete.
+- Pinned placeholder command behavior remains CommandResult.ShowToast("Wired in T30").
+- ConfirmDeleteAgentPage has stable Id/Name via CreateDeletePage: little-agents.agent.{agent.Id}.delete / Delete.
+- ConfirmDeleteAgentForm text contains: Delete agent '<name>'? This cannot be undone.
+- Adaptive Card actions include Delete with data confirmed=true and Cancel with data confirmed=false.
+- SubmitForm only calls AgentStore.Delete(agent.Id) when payload has explicit boolean confirmed=true; false, missing, malformed, or non-boolean confirmation returns CommandResult.GoBack without deleting.
+
+Verification commands/results:
+- lsp_diagnostics LittleAgentsExtension/Pages/Agents/AgentsListPage.cs and LittleAgentsExtension.Tests/AgentStoreTests.cs
+- Result: not run by server; csharp LSP is not installed and the prior user decision declined installation.
+- dotnet build "LittleAgentsExtension/LittleAgentsExtension.csproj" -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"
+- Result: EXITCODE=0; extension build succeeded with 0 warnings and 0 errors.
+- dotnet test "LittleAgentsExtension.Tests/LittleAgentsExtension.Tests.csproj" -c Debug 2>&1; "EXITCODE=$LASTEXITCODE"
+- Result: EXITCODE=0; 38 passed, 0 failed, 0 skipped. Added tests cover confirmed=true delete, confirmed=false cancel/no-delete, and missing confirmation/no-delete.
+- Python source verification command checked context command, confirmation classes/text/actions/data, delete gate, placeholder preservation, no T30/T37 navigation refs, and line count.
+- Result: EXITCODE=0; all checks True; LINECOUNT=217.
+
+Notes:
+- Initial parallel test run exited 1 because it competed with the simultaneous build for LittleAgentsExtension.runtimeconfig.json. The final sequential test run passed with EXITCODE=0.
+- rg was unavailable on this PowerShell PATH, so required bash/source checks used Python under bash instead.
+- Manual Command Palette host clicking was not performed in this environment; the form behavior was exercised directly through unit tests.

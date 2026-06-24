@@ -1,0 +1,20 @@
+Task 12 evidence
+
+Verification commands
+- `dotnet test LittleAgentsExtension.Tests/LittleAgentsExtension.Tests.csproj --filter FullyQualifiedName~ProviderStoreTests 2>&1; "EXITCODE=$LASTEXITCODE"`
+  - Result: passed, 6 tests, 0 failed, 0 skipped, `EXITCODE=0`
+  - Notes: test run surfaced pre-existing analyzer warnings in unrelated files, but the targeted test slice passed.
+- `dotnet build LittleAgentsExtension/LittleAgentsExtension.csproj -c Debug -p:Platform=x64 2>&1; "EXITCODE=$LASTEXITCODE"`
+  - Result: build succeeded, 3 warnings, 0 errors, `EXITCODE=0`
+- `(Get-Content LittleAgentsExtension/Storage/ProviderStore.cs).Count`
+  - Result: `101`
+- `Select-String -Path LittleAgentsExtension.Tests/ProviderStoreTests.cs -Pattern "apiKey|ApiKey|Secret|Password|sk-"`
+  - Result: 0 matches
+- `Select-String -Path LittleAgentsExtension.Tests/ProviderStoreTests.cs -Pattern "InvalidDataException|Parallel|Save|Upsert|Delete|Load"`
+  - Result: matches all requested coverage markers
+
+Manual QA artifact
+- `LittleAgentsExtension.Tests/ProviderStoreTests.cs`
+
+Cleanup receipt
+- No persistent temp directories or external QA resources remained.
