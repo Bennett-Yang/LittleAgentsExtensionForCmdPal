@@ -16,6 +16,7 @@ public partial class LittleAgentsExtensionCommandsProvider : CommandProvider
     private readonly ISecretStore _secretStore;
     private readonly OpenAiChatClient _llmClient;
     private readonly RunSessionCoordinator _runSessions;
+    private readonly LittleAgentsSettingsManager _settingsManager;
     private readonly ICommandItem[] _commands;
 
     public LittleAgentsExtensionCommandsProvider()
@@ -27,8 +28,10 @@ public partial class LittleAgentsExtensionCommandsProvider : CommandProvider
         _secretStore = SecretStoreFactory.Create();
         _llmClient = new OpenAiChatClient();
         _runSessions = new RunSessionCoordinator();
+        _settingsManager = new LittleAgentsSettingsManager();
+        Settings = _settingsManager.Settings;
         _commands = [
-            new CommandItem(new AgentsListPage(_agentStore, _providerStore, _secretStore, _llmClient, _runSessions)) { Title = DisplayName },
+            new CommandItem(new AgentsListPage(_agentStore, _providerStore, _secretStore, _llmClient, _runSessions, _settingsManager.ReadRuntimeSettings)) { Title = DisplayName },
         ];
     }
 

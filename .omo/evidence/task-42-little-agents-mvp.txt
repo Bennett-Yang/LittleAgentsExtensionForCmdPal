@@ -1,0 +1,31 @@
+Task 42 evidence: AgentsListPage EmptyContent onboarding
+
+Changed files:
+- LittleAgentsExtension/Pages/Agents/AgentsListPage.cs
+- LittleAgentsExtension/Pages/Agents/ConfirmDeleteAgentPage.cs
+- LittleAgentsExtension.Tests/AgentsListPageEmptyContentTests.cs
+- .omo/evidence/task-42-little-agents-mvp.txt
+
+Verification commands and results:
+- LSP diagnostics on changed C# files
+  Result: C# LSP server is not installed; verification used source reads and dotnet commands.
+- Pure line counts:
+  - AgentsListPage.cs: 185
+  - ConfirmDeleteAgentPage.cs: 79
+  - AgentsListPageEmptyContentTests.cs: 120
+- dotnet test "LittleAgentsExtension.Tests\LittleAgentsExtension.Tests.csproj" -c Debug -p:Platform=x64 --filter "FullyQualifiedName~AgentsListPageEmptyContentTests"
+  Result: 5 passed; 0 failed; 0 skipped
+- dotnet test "LittleAgentsExtension.Tests\LittleAgentsExtension.Tests.csproj" -c Debug -p:Platform=x64
+  Result: 86 passed; 0 failed; 0 skipped
+- dotnet build "LittleAgentsExtension\LittleAgentsExtension.csproj" -c Debug -p:Platform=x64
+  Result: exit 0; 0 warnings; 0 errors
+
+Coverage notes:
+- Verified `DynamicListPage.EmptyContent` is a settable `ICommandItem`.
+- Empty store points to ProviderEditFormPage with title `Add a provider first`.
+- Provider-only store points to AgentEditFormPage with title `Create your first agent`.
+- Regression test confirms filtered-empty search does not set EmptyContent when agents exist.
+- Store change test confirms EmptyContent refreshes from cached underlying store state.
+
+Manual smoke remaining:
+- Real Command Palette fresh-install EmptyContent visual/interaction smoke still requires a desktop CmdPal run and is covered by the plan's manual acceptance criteria.

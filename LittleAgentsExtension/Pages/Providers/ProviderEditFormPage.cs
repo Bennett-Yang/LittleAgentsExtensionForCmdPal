@@ -18,7 +18,7 @@ internal sealed partial class ProviderEditFormPage : ContentPage
     {
         _form = new ProviderEditForm(providers, secrets, existing);
         Title = existing == null ? "New provider" : "Edit provider";
-        Icon = new IconInfo("\uE968");
+        Icon = Icons.Provider;
     }
 
     public override IContent[] GetContent() => [_form];
@@ -124,13 +124,13 @@ internal sealed partial class ProviderEditForm : FormContent
         string providerId = _existing?.Id ?? Guid.NewGuid().ToString("N");
         ProviderDef provider = new(providerId, name, baseUrl, defaultModel.Length == 0 ? null : defaultModel);
 
-        _providers.Upsert(provider);
-
         if (apiKey.Length > 0)
         {
             _secrets.Set(providerId, apiKey);
             AssertProvidersJsonDoesNotContain(apiKey);
         }
+
+        _providers.Upsert(provider);
 
         return CommandResult.GoBack();
     }

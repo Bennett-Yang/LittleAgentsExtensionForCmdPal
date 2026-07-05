@@ -74,36 +74,6 @@ public sealed class AgentStoreTests
     }
 
     [Fact]
-    public void ConfirmDeleteAgentForm_cancel_payload_does_not_delete_agent()
-    {
-        using TempStoreDirectory tempStore = new();
-
-        AgentStore store = new(tempStore.StorePath);
-        AgentDef agent = CreateAgent("agent-a", "Agent A", "provider-a", "model-a");
-        store.Save([agent]);
-
-        ConfirmDeleteAgentForm form = new(store, agent);
-        form.SubmitForm("{\"confirmed\":false}");
-
-        Assert.Single(store.Load());
-    }
-
-    [Fact]
-    public void ConfirmDeleteAgentForm_missing_confirmation_does_not_delete_agent()
-    {
-        using TempStoreDirectory tempStore = new();
-
-        AgentStore store = new(tempStore.StorePath);
-        AgentDef agent = CreateAgent("agent-a", "Agent A", "provider-a", "model-a");
-        store.Save([agent]);
-
-        ConfirmDeleteAgentForm form = new(store, agent);
-        form.SubmitForm("{}");
-
-        Assert.Single(store.Load());
-    }
-
-    [Fact]
     public void ConfirmDeleteAgentForm_confirmed_payload_deletes_agent()
     {
         using TempStoreDirectory tempStore = new();
@@ -116,6 +86,35 @@ public sealed class AgentStoreTests
         form.SubmitForm("{\"confirmed\":true}");
 
         Assert.Empty(store.Load());
+    }
+
+    [Fact]
+    public void ConfirmDeleteAgentForm_empty_submit_payload_deletes_agent()
+    {
+        using TempStoreDirectory tempStore = new();
+
+        AgentStore store = new(tempStore.StorePath);
+        AgentDef agent = CreateAgent("agent-a", "Agent A", "provider-a", "model-a");
+        store.Save([agent]);
+
+        ConfirmDeleteAgentForm form = new(store, agent);
+        form.SubmitForm("{}");
+
+        Assert.Empty(store.Load());
+    }
+
+    [Fact]
+    public void ConfirmDeleteAgentForm_template_exposes_only_delete_submit()
+    {
+        using TempStoreDirectory tempStore = new();
+
+        AgentStore store = new(tempStore.StorePath);
+        AgentDef agent = CreateAgent("agent-a", "Agent A", "provider-a", "model-a");
+
+        ConfirmDeleteAgentForm form = new(store, agent);
+
+        Assert.Contains("\"title\": \"Delete\"", form.TemplateJson, StringComparison.Ordinal);
+        Assert.DoesNotContain("Cancel", form.TemplateJson, StringComparison.Ordinal);
     }
 
     [Fact]

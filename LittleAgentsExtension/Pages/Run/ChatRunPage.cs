@@ -55,7 +55,7 @@ internal sealed partial class ChatRunPage : ContentPage
         _initialUserMsg = string.Empty;
 
         Title = _agent.Name;
-        Icon = _agent.Icon is not null ? new IconInfo(_agent.Icon) : new IconInfo("\uE945");
+        Icon = _agent.Icon is not null ? new IconInfo(_agent.Icon) : Icons.AgentDefault;
         InitializeCommands();
     }
     public override IContent[] GetContent()
@@ -134,7 +134,12 @@ internal sealed partial class ChatRunPage : ContentPage
     private async Task RunStreamAsync(string renderedUserMsg, ChatRequest request, CancellationTokenSource thisCts, CancellationToken ct)
     {
         StringBuilder transcript = new(_output.Body);
-        transcript.AppendLine().Append("**You:** ").AppendLine(renderedUserMsg).AppendLine().Append("**Assistant:** ");
+        if (transcript.Length > 0)
+        {
+            transcript.AppendLine().AppendLine();
+        }
+
+        transcript.Append("**You:** ").AppendLine(renderedUserMsg).AppendLine().Append("**Assistant:** ");
         UpdateOutput(transcript.ToString(), thisCts);
         StringBuilder assistant = new();
         try
@@ -169,6 +174,7 @@ internal sealed partial class ChatRunPage : ContentPage
     {
         if (!ReferenceEquals(_cts, owner)) { return; }
         _output.Body = body;
+        RaiseItemsChanged(0);
     }
     private static string MapErrorToMarkdown(Exception exception)
     {

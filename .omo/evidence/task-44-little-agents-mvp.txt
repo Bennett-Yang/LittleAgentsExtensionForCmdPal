@@ -20,3 +20,19 @@ Verification
 Manual smoke
 - Not run in this worker.
 - See `.omo/evidence/spike-clipboard-mta.md` for the required desktop smoke steps and placeholder.
+
+Manual smoke attempt 2026-06-28
+- Host: Visual Studio F5 + Command Palette reload.
+- Text clipboard: failed before clipboard behavior could be observed; invoking the `Clipboard smoke` agent produced no visible reaction.
+- Follow-up: fixed agent row navigation to use direct `ChatRunPage` commands instead of custom `GoToPageArgs` carrying a hidden page object.
+- Verification after navigation fix: `AgentsListPageInvocationTests` 6/6 passed; full suite 105/105 passed; Debug build 0 warnings/errors; Release build 0 errors with existing warnings.
+- T44 remains unchecked until the real clipboard smoke is retried after redeploy/reload and text/image/empty clipboard observations are recorded.
+
+Manual smoke pass 2026-06-28
+- Host: Visual Studio F5 + Command Palette reload.
+- Text clipboard: PASS. `Clipboard smoke` showed the copied text after `You`, and the assistant returned the same text verbatim.
+- Image-only clipboard: PASS. `You` was empty, and no binary data or clipboard exception appeared. The assistant showed provider error `Error 400: HTTP 400 (: 1213)未正常接收到prompt内容`, which is expected because the rendered prompt was empty.
+- Empty clipboard: PASS. `You` was empty, and no clipboard exception appeared. The assistant showed provider error `Error 400: HTTP 400 (: 1213)未正常接收到prompt内容`, which is expected because the rendered prompt was empty.
+
+Verdict
+- PASS. Unit tests cover text/image-only/empty source behavior; real MTA-host desktop smoke confirms text returns text and image-only/empty clipboard payloads render as empty prompt content without clipboard-reader failure.

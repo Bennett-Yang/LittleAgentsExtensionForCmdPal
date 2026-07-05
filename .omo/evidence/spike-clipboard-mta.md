@@ -31,3 +31,20 @@
 ## Cleanup receipt
 - No temporary probe files were kept.
 - Clipboard handles are closed in the fallback path via `CloseClipboard()` in `finally`.
+
+## Manual smoke attempt 2026-06-28
+- Host: Visual Studio F5 + Command Palette reload.
+- Text clipboard result: failed before clipboard behavior could be observed.
+- Observation: running the `Clipboard smoke` agent produced no visible reaction.
+- Follow-up root cause found in agent navigation, not clipboard reading: agent rows used an invokable command returning `CommandResult.GoToPage` with custom `ChatRunPageNavigationArgs`, but CmdPal's `GoToPageArgs` only carries `PageId`/`NavigationMode` and does not carry a target page object.
+- Fix applied: runnable agent rows now use direct `ChatRunPage` commands (`new ListItem(new ChatRunPage(...))`), matching the toolkit's direct-page pattern. Missing-provider/key cases still use toast commands.
+- Additional fix: `ProviderEditForm.SubmitForm` now writes a non-empty api key before `ProviderStore.Upsert(...)`, so the provider `Changed` refresh can build runnable direct `ChatRunPage` rows immediately after provider creation.
+- Verification after fix: focused invocation tests passed 6/6; full suite passed 105/105; Debug build passed 0 warnings/errors; Release build passed 0 errors with existing trim/analyzer warnings.
+- Status: T44 still pending. Retry the text/image/empty clipboard smoke after redeploy + Command Palette reload.
+
+## Manual smoke pass 2026-06-28
+- Host: Visual Studio F5 + Command Palette reload.
+- Text clipboard: PASS. `Clipboard smoke` rendered the copied text in the `You` section, and the assistant returned the same text verbatim.
+- Image-only clipboard: PASS. The `You` section was empty; no image/binary garbage appeared and no clipboard exception surfaced. The assistant section showed downstream provider error `Error 400: HTTP 400 (: 1213)未正常接收到prompt内容`, which is expected for an empty prompt and is not a clipboard-reader failure.
+- Empty clipboard: PASS. The `You` section was empty; no clipboard exception surfaced. The assistant section showed downstream provider error `Error 400: HTTP 400 (: 1213)未正常接收到prompt内容`, which is expected for an empty prompt and is not a clipboard-reader failure.
+- Verdict: PASS. Real desktop smoke confirms text clipboard returns text, image-only clipboard is treated as null/empty, and empty clipboard is treated as null/empty from the extension's normal MTA host path.

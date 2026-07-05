@@ -222,7 +222,7 @@ Your next move: say **"start work"** (or `$start-work`) to begin implementation 
   QA: happy = all 4 pass; failure = make `Set` not overwrite, expect "set twice" test to fail. Evidence `.omo/evidence/task-13-little-agents-mvp.txt`.
   Commit: Y | `test(storage): ISecretStore contract tests via in-memory impl`
 
-- [ ] 44. **Spike: Clipboard from MTA thread + binary-data handling** (D-CLIP)
+- [x] 44. **Spike: Clipboard from MTA thread + binary-data handling** (D-CLIP)
   What to do / Must NOT do: add `LittleAgentsExtension/Llm/ClipboardReader.cs` with `internal static async Task<string?> TryGetTextAsync()`. Implementation:
   ```csharp
   // First try the WinRT path
@@ -318,7 +318,7 @@ Your next move: say **"start work"** (or `$start-work`) to begin implementation 
   QA: happy = build green and manual smoke shows pinned items; failure = forget to append pinned items in `GetItems`, expect manual smoke to show only saved agents (or empty list). Evidence `.omo/evidence/task-20-little-agents-mvp.txt`.
   Commit: Y | `feat(pages): AgentsListPage as searchable DynamicListPage with pinned items`
 
-- [ ] 46. **Spike: MarkdownContent re-render in 0.5.250829002** (D-RENDER)
+- [x] 46. **Spike: MarkdownContent re-render in 0.5.250829002** (D-RENDER)
   What to do / Must NOT do: add a hidden debug page `Pages/_Spikes/MarkdownTickerPage.cs` that mutates a `MarkdownContent.Body` 5 ×/sec for 5 seconds. Wire it as a 4th pinned item in AgentsListPage **only when** `#if DEBUG` is set. Document observed behavior in `.omo/evidence/spike-markdown-rerender.md`: does the UI live-update? If YES, T34 uses Body-mutation. If NO, T34 uses the fallback (replace whole `MarkdownContent` instance + `RaiseItemsChanged(0)`). Must NOT ship the debug page in Release (gate with `#if DEBUG`).
   Parallelization: Wave 3 | Blocked by: T20 | Blocks: T34
   References: PowerToys issue https://github.com/microsoft/PowerToys/issues/39216; PR https://github.com/microsoft/PowerToys/pull/39263; D-RENDER.
@@ -334,7 +334,7 @@ Your next move: say **"start work"** (or `$start-work`) to begin implementation 
   QA: happy = D-FORM-REFRESH flow demonstrated; failure = comment out the `_cachedAgents = agents.Load()` re-load inside the Changed handler, expect the new agent to NOT appear. Evidence `.omo/evidence/task-21-little-agents-mvp.txt`.
   Commit: Y | `feat(pages): AgentsListPage caches agents.Load and refreshes on Changed`
 
-- [ ] 22. Pinned items use NoOp + ShowToast placeholders (later replaced by T30)
+- [x] 22. Pinned items use NoOp + ShowToast placeholders (later replaced by T30)
   What to do / Must NOT do: in T20's `GetItems`, the three pinned items (`+ New Agent`, `Manage Providers`, `Settings`) are wired to `new InvokableCommand(() => { /* show toast */ })` returning `CommandResult.ShowToast("Wired in T30")`. This intermediate state lets T20 compile and lets manual smoke verify the page renders, without depending on Wave 4's editor pages. Must NOT ship this state — T30 replaces these with real navigation; this todo is purely a build-order convenience.
   Parallelization: Wave 3 | Blocked by: T20 | Blocks: T30 (replaces this code)
   References: T20.
@@ -384,7 +384,7 @@ Your next move: say **"start work"** (or `$start-work`) to begin implementation 
   QA: see T28. Evidence `.omo/evidence/task-27-little-agents-mvp.txt`.
   Commit: N (paired with T28 — single commit at T28's commit line)
 
-- [ ] 28. `ProviderEditForm` Adaptive Card with apiKey style=password + secret split
+- [x] 28. `ProviderEditForm` Adaptive Card with apiKey style=password + secret split
   What to do / Must NOT do: Adaptive Card 1.6 fields: `Input.Text id=Name (isRequired=true)`, `Input.Text id=BaseUrl (isRequired=true, style=url, placeholder="https://api.openai.com/v1")` with hint text **"Include the `/v1` (or your provider's API root path). Examples: https://api.openai.com/v1 · https://openrouter.ai/api/v1 · http://localhost:11434/v1"** (per D-BASEURL); `Input.Text id=ApiKey (style=password)`, `Input.Text id=DefaultModel` (optional but recommended). **Edit-mode:** ApiKey field empty by default; submitting empty ApiKey on edit KEEPs the existing key (don't blank the vault); submitting empty ApiKey on create → `CommandResult.ShowToast("API key is required") + KeepOpen`. **TLS posture:** do NOT add any cert-bypass code. If the user enters an `https://` URL whose cert is self-signed or expired, the request will fail at run time with a TLS error mapped by D-ERR. For local providers, recommend `http://localhost` (also surface this in T39 PUBLISHING.md). Submit flow: parse payload, validate Name + BaseUrl + (ApiKey on create), split — `ProviderDef(Id, Name, BaseUrl, DefaultModel)` → `providers.Upsert(...)`; `apiKey` → `secrets.Set(providerId, apiKey)` only if non-empty. **Backend selection (D-VAULT)**: `secrets` is the spike-validated singleton — either `WindowsPasswordVaultSecretStore` or `DpapiSecretStore`; the form does not care which. Must NOT serialize the apiKey into providers.json. Add a post-submit debug-only assertion: `Debug.Assert(!File.ReadAllText(providers.json).Contains(apiKey))`.
   Parallelization: Wave 4 | Blocked by: T27, T10, T45 | Blocks: T29, T30, T31
   References: https://adaptivecards.io/explorer/Input.Text.html (style=password, style=url); D-FORM-REFRESH; D-VAULT; D-BASEURL.
@@ -392,7 +392,7 @@ Your next move: say **"start work"** (or `$start-work`) to begin implementation 
   QA: happy = create + edit + edit-without-changing-key flows all succeed; failure = inject the canary into BaseUrl text by mistake → grep finds it (negative control, expected). Evidence `.omo/evidence/task-28-little-agents-mvp.txt`.
   Commit: Y | `feat(pages): ProviderEditFormPage with secret split (D-VAULT, D-BASEURL)`
 
-- [ ] 29. Provider delete + orphan-block (D-ORPHAN)
+- [x] 29. Provider delete + orphan-block (D-ORPHAN)
   What to do / Must NOT do: in `ProvidersListPage`'s per-provider context "Delete" command, wrap a `ConfirmDeleteProviderPage : ContentPage` whose `FormContent.SubmitForm` runs: `var orphans = agents.Load().Where(a => a.ProviderId == providerId).Select(a => a.Name).ToArray();`. If `orphans.Length > 0`: `return CommandResult.ShowToast($"Cannot delete '{name}': {orphans.Length} agent(s) reference it — {string.Join(", ", orphans.Take(3))}{(orphans.Length > 3 ? ", ..." : "")} — reassign or delete them first") + KeepOpen`. Otherwise: `providers.Delete(providerId); secrets.Delete(providerId); return CommandResult.GoBack()`. Must NOT silently orphan agents. Must NOT skip the `secrets.Delete(providerId)` cleanup — leftover credential entries are a leak.
   Parallelization: Wave 4 | Blocked by: T9, T10, T28, T31 | Blocks: F3
   References: T31 (ProvidersListPage); T28 (paired secret store); D-ORPHAN.
@@ -400,7 +400,7 @@ Your next move: say **"start work"** (or `$start-work`) to begin implementation 
   QA: happy = 3 sub-tests pass; failure = remove the `secrets.Delete(providerId)` line, expect a follow-up assertion "secret store has 0 entries after delete" to fail. Evidence `.omo/evidence/task-29-little-agents-mvp.txt`.
   Commit: Y | `feat(pages): provider delete blocks on orphan agents and cleans up secret (D-ORPHAN)`
 
-- [ ] 30. Replace AgentsListPage pinned NoOps with real navigation for agents/providers (D-FIRSTRUN)
+- [x] 30. Replace AgentsListPage pinned NoOps with real navigation for agents/providers (D-FIRSTRUN)
   What to do / Must NOT do: "+ New Agent" navigates to `new AgentEditFormPage(agents, providers, existing: null)` UNLESS `providers.Load().Length == 0` — in that case show `ShowToast("Add a provider first")` and navigate to `new ProviderEditFormPage(providers, secrets, existing: null)` instead (D-FIRSTRUN). "Manage Providers" → `new ProvidersListPage(...)`. "Settings" remains a temporary `ShowToast("Settings are available from the Command Palette gear after T40")` placeholder until T40 wires the toolkit Settings gear and, if a list-level Settings item remains, replaces it there. Confirm the exact CmdPal navigation API by inspecting https://github.com/microsoft/PowerToys/blob/main/src/modules/cmdpal/ext/SamplePagesExtension/Pages/SamplesListPage.cs — pattern is to set the ListItem's primary `Command` to either an `IPage` directly (toolkit auto-pushes) or wrap with an `InvokableCommand` returning `CommandResult.GoToPage(...)` if that API exists in 0.5.x. Pick the pattern that the sample uses and document it in a code comment. Must NOT pre-construct subpages on every `GetItems` call — lazy-construct each time the user actually invokes the pinned item (memory cost + correctness with refresh).
   Parallelization: Wave 4 | Blocked by: T22, T25, T28, T31 | Blocks: T37
   References: D-FIRSTRUN; CommandResult navigation enum; https://github.com/microsoft/PowerToys/blob/main/src/modules/cmdpal/ext/SamplePagesExtension/Pages/SamplesListPage.cs (canonical navigation pattern).
@@ -563,7 +563,7 @@ Your next move: say **"start work"** (or `$start-work`) to begin implementation 
   QA: happy = all 5 sub-tests pass; failure = inline `Clipboard.SetText(_lastAssistantText)` directly in command ctor (capturing at construction), expect (e) to fail. Evidence `.omo/evidence/task-35-little-agents-mvp.txt`.
   Commit: Y | `feat(pages): Copy result / Copy transcript / Stop / Re-run via IClipboardWriter seam`
 
-- [ ] 36. Reply: append a new turn (multi-turn) — preserves history invariant
+- [x] 36. Reply: append a new turn (multi-turn) — preserves history invariant
   What to do / Must NOT do: `ReplyCommand` swaps page content from `_output` to a fresh `RunInputForm` (empty by default — does NOT prefill clipboard, since `{selection}` is a first-turn-only substitution). On submit: read `replyText` from the form, then call `StartStream(replyText)`. Per T34's history invariant, `StartStream` appends a User turn before iteration and a single Assistant turn on success — no extra plumbing needed. The visible separator between turns in `_output.Body` is one blank line (already produced by the `sb.AppendLine()` calls in T34). After streaming completes, swap `_inputForm` back out and re-display `_output`.
 
   **{selection} semantics**: `{selection}` is evaluated ONCE, at first-turn rendering, before history exists. Replies do NOT re-evaluate `{selection}` — replies are taken verbatim from the form. Document this in T17's TemplateRenderer XML comments and in T38 README.
@@ -575,7 +575,7 @@ Your next move: say **"start work"** (or `$start-work`) to begin implementation 
   QA: happy = all 4 sub-tests pass; failure = re-evaluate `{selection}` on reply by calling `TemplateRenderer.Render(replyText, ...)` instead of using verbatim — expect a test asserting raw substring "{selection}" in user2 to fail when clipboard differs. Evidence `.omo/evidence/task-36-little-agents-mvp.txt`.
   Commit: Y | `feat(pages): multi-turn Reply preserves history invariant; {selection} is first-turn only`
 
-- [ ] 37. Wire AgentsListPage agent invocation → ChatRunPage
+- [x] 37. Wire AgentsListPage agent invocation → ChatRunPage
   What to do / Must NOT do: in `AgentsListPage.GetItems` per agent, the primary `Command` of the ListItem is an `InvokableCommand` whose Invoke only validates prerequisites and creates the page. The created `ChatRunPage` activates the shared `RunSessionCoordinator` on its first `GetContent()` (T33), not in this invoke lambda, so navigation to an input-gated page still cancels the previous active run as soon as the page renders. Invoke does:
   ```csharp
   var p = providers.Load().FirstOrDefault(x => x.Id == agent.ProviderId);
@@ -593,7 +593,7 @@ Your next move: say **"start work"** (or `$start-work`) to begin implementation 
 
 ### Wave 6 — Polish + docs
 
-- [ ] 38. `README.md` at solution root
+- [x] 38. `README.md` at solution root
   What to do / Must NOT do: cover the following sections in this order:
   1. **English description** matching the user's request — "save prompt templates as agents and invoke any OpenAI-compatible LLM from Command Palette".
   2. **中文摘要** (Chinese summary) — same content, ≤ 8 lines, since the user wrote in Chinese.
@@ -623,7 +623,7 @@ Your next move: say **"start work"** (or `$start-work`) to begin implementation 
   QA: happy = all 3 asserts hold; failure = paste a real 40-char hex thumbprint, expect the 3rd assert to fail. Evidence `.omo/evidence/task-39-little-agents-mvp.txt`.
   Commit: Y | `docs(publishing): self-signed cert, manifest publisher swap, Store path`
 
-- [ ] 40. `Pages/SettingsPage.cs` with toolkit Settings + JsonSettingsManager
+- [x] 40. `Pages/SettingsPage.cs` with toolkit Settings + JsonSettingsManager
   What to do / Must NOT do: create `internal sealed class SettingsManager : Microsoft.CommandPalette.Extensions.Toolkit.JsonSettingsManager`. Register two settings via the toolkit:
   - `NumberSetting("temperature", label: "Default temperature", description: "0.0 - 2.0", defaultValue: 1.0, min: 0.0, max: 2.0)` — `ChatRunPage` reads this once per `BuildRequest()` call as the default for `ChatRequest.Temperature`.
   - `TextSetting("systemPrefix", label: "System-prompt prefix", description: "Optional text prepended to every agent's system prompt", defaultValue: "")` — `ChatRunPage.BuildRequest()` does `new ChatMessage(System, settings.SystemPrefix + agent.SystemPrompt)`.
@@ -636,7 +636,7 @@ Your next move: say **"start work"** (or `$start-work`) to begin implementation 
   QA: happy = settings UI works AND value flows into request body AND file persists AND temporary placeholder text is gone; failure = remove `Settings = _settingsManager.Settings` wiring, expect the gear icon to not appear. Evidence `.omo/evidence/task-40-little-agents-mvp.txt`.
   Commit: Y | `feat(pages): SettingsPage with default temperature and system-prompt prefix`
 
-- [ ] 41. Icons + tags + subtitles polish
+- [x] 41. Icons + tags + subtitles polish
   What to do / Must NOT do: introduce a static `LittleAgentsExtension.Icons` class holding all glyph constants:
   - `AgentDefault = new IconInfo("\uE945")` (LightningBolt)
   - `New = new IconInfo("\uE710")` (Add)
@@ -652,7 +652,7 @@ Your next move: say **"start work"** (or `$start-work`) to begin implementation 
   QA: happy = both checks pass; failure = inline `new IconInfo("\uE945")` in any Pages/*.cs file, expect grep to find it. Evidence `.omo/evidence/task-41-little-agents-mvp.txt`.
   Commit: Y | `feat(pages): centralize Segoe Fluent glyphs in Icons.cs; polish subtitles and tags`
 
-- [ ] 42. EmptyContent on AgentsListPage when zero agents
+- [x] 42. EmptyContent on AgentsListPage when zero agents
   What to do / Must NOT do: in `AgentsListPage`, override `EmptyContent` (a `ListPage` property — verify against the Toolkit class). When `_cachedAgents.Length == 0` AND `_cachedProviders.Length == 0`: `EmptyContent = new ListItem(new InvokableCommand(() => CommandResult.GoToPage(new ProviderEditFormPage(...)))) { Title = "Add a provider first", Subtitle = "You'll need an OpenAI-compatible endpoint and API key" }`. When `_cachedAgents.Length == 0` AND `_cachedProviders.Length > 0`: `EmptyContent = new ListItem(new InvokableCommand(() => CommandResult.GoToPage(new AgentEditFormPage(...)))) { Title = "Create your first agent", Subtitle = "Define a system prompt and pick a provider" }`. Must NOT show EmptyContent when the user has filtered the list to empty via search — only when the underlying store is empty.
   Parallelization: Wave 6 | Blocked by: T20, T21, T30 | Blocks: F1
   References: T20; T30; D-FIRSTRUN.
@@ -660,7 +660,7 @@ Your next move: say **"start work"** (or `$start-work`) to begin implementation 
   QA: happy = all 3 states show correctly; failure = trigger EmptyContent on filtered-empty (not store-empty), expect a regression test asserting that searching for `"zzz"` with non-empty store does NOT show EmptyContent to fail. Evidence `.omo/evidence/task-42-little-agents-mvp.txt`.
   Commit: Y | `feat(pages): EmptyContent guides first-launch users (D-FIRSTRUN)`
 
-- [ ] 43. `.omo/evidence/task-43-little-agents-mvp.md` — manual QA checklist
+- [x] 43. `.omo/evidence/task-43-little-agents-mvp.md` — manual QA checklist
   What to do / Must NOT do: write a **16-step** numbered checklist that an operator can execute step-by-step: (1) F5 Deploy from Visual Studio, (2) Reload via "Reload Command Palette Extension" command, (3) "Little Agents" appears in CmdPal top-level, (4) add provider with valid baseUrl + key (e.g. `https://api.openai.com/v1`), (5) verify `Get-ChildItem "$env:LOCALAPPDATA\Packages\*\LocalState\LittleAgents" -Recurse -File | Select-String -Pattern "<canary key>"` returns 0 matches across all files (secret hygiene), (6) add agent referencing the provider, (7) run agent with no `{input}` in template — first chunk visible within 1 s of click, (8) run agent with `{input}` — input form shows, submit, stream visible, (9) cancel mid-stream — body ends with `_(stopped)_` within 1 s of Stop click, (10) Reply works (multi-turn within the same ChatRunPage instance), (11) while agent A is streaming, invoke agent B whose template contains `{input}`; as soon as B's input form appears and before submitting it, A stops within 1 s (D-RUN-SINGLE input-gated path), then submit B and verify B streams, (12) Copy result puts the most recent assistant turn on clipboard; Copy transcript puts the full body, (13) edit agent persists across CmdPal reload, (14) delete provider blocks if agents reference it (D-ORPHAN toast lists names), (15) close+reopen CmdPal → agents and providers persist, ephemeral history does NOT, (16) `dotnet publish LittleAgentsExtension/LittleAgentsExtension.csproj -c Release -r win-x64 -p:Platform=x64 2>&1 | Select-String "error"` returns 0 matches (the test ignores warnings per D-AOT).
   Parallelization: Wave 6 | Blocked by: T37, T38, T39 | Blocks: F3
   References: D-FORM-REFRESH; D-ORPHAN; D-FIRSTRUN; D-AOT; D-CANCEL; D-RUN-SINGLE; D-VAULT.
@@ -672,9 +672,9 @@ Your next move: say **"start work"** (or `$start-work`) to begin implementation 
 > Runs in parallel after ALL todos. ALL must APPROVE. Surface results and wait for the user's explicit okay.
 
 - [ ] F1. Plan compliance audit. Every todo has its acceptance criteria met; commit log shows the listed commit messages in some order; D-CANCEL, D-RUN-SINGLE, D-HISTORY, D-RENDER, D-AOT, D-EXP, D-CLIP, D-VAULT, D-FORM-REFRESH, D-SEL-CAP, D-ORPHAN, D-FIRSTRUN, D-ERR, D-BASEURL all referenced from at least one real code or docs path; the four spike evidence files exist and match the spike-validated implementation choice (vault vs DPAPI, body-mutation vs whole-replace, WinRT vs P/Invoke clipboard).
-- [ ] F2. Code quality review. `dotnet build -c Release -p:Platform=x64` zero errors. `dotnet test` ≥ 25 passing. All new files ≤ 250 LoC (verify with `Get-ChildItem -Recurse *.cs | Where-Object { (Get-Content $_).Count -gt 250 }`). No `#pragma warning disable` outside the documented OPENAI001 exception. No `// TODO` left in shipped code.
-- [ ] F3. Real manual QA. Execute every step of T43's checklist; record outcomes in `.omo/evidence/F3-manual-qa.md`. F3 fails if any of the 16 steps fails.
-- [ ] F4. Scope fidelity. Confirm every "Must NOT have" item from `## Scope` is absent: grep for forbidden patterns (`tools:`, `function_call`, `image_url`, `audio`, `embedding`, `vector_store`, `/v1/models`). All matches must be in test fixtures only, not production code.
+- [x] F2. Code quality review. `dotnet build -c Release -p:Platform=x64` zero errors. `dotnet test` ≥ 25 passing. All new files ≤ 250 LoC (verify with `Get-ChildItem -Recurse *.cs | Where-Object { (Get-Content $_).Count -gt 250 }`). No `#pragma warning disable` outside the documented OPENAI001 exception. No `// TODO` left in shipped code.
+- [x] F3. Real manual QA. Execute every step of T43's checklist; record outcomes in `.omo/evidence/F3-manual-qa.md`. F3 fails if any of the 16 steps fails.
+- [x] F4. Scope fidelity. Confirm every "Must NOT have" item from `## Scope` is absent: grep for forbidden patterns (`tools:`, `function_call`, `image_url`, `audio`, `embedding`, `vector_store`, `/v1/models`). All matches must be in test fixtures only, not production code.
 
 ## Commit strategy
 
@@ -685,18 +685,18 @@ Your next move: say **"start work"** (or `$start-work`) to begin implementation 
 
 ## Success criteria
 
-- [ ] Sideloaded MSIX, visible in Command Palette as **Little Agents** with the configured icon.
-- [ ] User can add, edit, and delete providers, with API key **encrypted at rest** — vault preferred, DPAPI fallback acceptable per D-VAULT — verified by canary grep returning zero plaintext matches in any file under `LocalState\LittleAgents`.
-- [ ] User can add, edit, and delete agents bound to a provider+model.
-- [ ] Selecting an agent in CmdPal:
+- [x] Sideloaded MSIX, visible in Command Palette as **Little Agents** with the configured icon.
+- [x] User can add, edit, and delete providers, with API key **encrypted at rest** — vault preferred, DPAPI fallback acceptable per D-VAULT — verified by canary grep returning zero plaintext matches in any file under `LocalState\LittleAgents`.
+- [x] User can add, edit, and delete agents bound to a provider+model.
+- [x] Selecting an agent in CmdPal:
   - if template has `{input}` ⇒ input form ⇒ submit ⇒ streaming markdown response (first chunk in UI within 1 s of network arrival).
   - if template has no `{input}` ⇒ immediate streaming.
   - `{selection}` substitutes with current Windows clipboard text (capped at 8 000 chars).
-- [ ] Multi-turn Reply works within a single ChatRunPage instance. Re-invoking the agent from the list yields a fresh ChatRunPage with empty history and cancels the previous active run through `RunSessionCoordinator` (back-stack retention is acceptable only if the retained page is inactive).
-- [ ] Stop command cancels the in-flight HTTP request within 1 s; verified in T18-style integration test that asserts the fake handler observed `CancellationToken.IsCancellationRequested == true`.
-- [ ] **Copy result** puts the **most recent assistant turn** on the clipboard (tracked as `_lastAssistantText`); a separate **Copy transcript** command puts the full markdown body.
-- [ ] xUnit suite ≥ 25 passing tests covering OpenAiChatClient (fake handler), AgentStore, ProviderStore, ISecretStore contract, TemplateRenderer.
-- [ ] Release build succeeds with zero IL2026/IL3050 **errors** (warnings tolerated for OpenAI/Microsoft.Extensions.AI.OpenAI assemblies per D-AOT).
-- [ ] No plaintext API key on disk in any file under the package's LocalState (verified by recursive all-file canary grep: `Get-ChildItem "$env:LOCALAPPDATA\Packages\*\LocalState\LittleAgents" -Recurse -File | Select-String -Pattern "sk-test"` returns zero matches).
-- [ ] Every Scope-OUT item is absent from production code (verified by grep in F4).
-- [ ] All four spike documents exist and inform the implementation: `spike-clipboard-mta.md`, `spike-vault-mta.md`, `spike-markdown-rerender.md`, plus the `task-N-*` evidence files.
+- [x] Multi-turn Reply works within a single ChatRunPage instance. Re-invoking the agent from the list yields a fresh ChatRunPage with empty history and cancels the previous active run through `RunSessionCoordinator` (back-stack retention is acceptable only if the retained page is inactive).
+- [x] Stop command cancels the in-flight HTTP request within 1 s; verified in T18-style integration test that asserts the fake handler observed `CancellationToken.IsCancellationRequested == true`.
+- [x] **Copy result** puts the **most recent assistant turn** on the clipboard (tracked as `_lastAssistantText`); a separate **Copy transcript** command puts the full markdown body.
+- [x] xUnit suite ≥ 25 passing tests covering OpenAiChatClient (fake handler), AgentStore, ProviderStore, ISecretStore contract, TemplateRenderer.
+- [x] Release build succeeds with zero IL2026/IL3050 **errors** (warnings tolerated for OpenAI/Microsoft.Extensions.AI.OpenAI assemblies per D-AOT).
+- [x] No plaintext API key on disk in any file under the package's LocalState (verified by recursive all-file canary grep: `Get-ChildItem "$env:LOCALAPPDATA\Packages\*\LocalState\LittleAgents" -Recurse -File | Select-String -Pattern "sk-test"` returns zero matches).
+- [x] Every Scope-OUT item is absent from production code (verified by grep in F4).
+- [x] All four spike documents exist and inform the implementation: `spike-clipboard-mta.md`, `spike-vault-mta.md`, `spike-markdown-rerender.md`, plus the `task-N-*` evidence files.

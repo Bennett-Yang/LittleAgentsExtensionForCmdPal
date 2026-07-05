@@ -10,8 +10,6 @@ namespace LittleAgentsExtension;
 
 internal sealed partial class ProvidersListPage : DynamicListPage
 {
-    private const string ProviderIcon = "\uE968";
-
     private readonly ProviderStore _providers;
     private readonly ISecretStore _secrets;
     private readonly AgentStore _agents;
@@ -25,7 +23,7 @@ internal sealed partial class ProvidersListPage : DynamicListPage
         _cachedProviders = providers.Load();
 
         Title = "Providers";
-        Icon = new IconInfo(ProviderIcon);
+        Icon = Icons.Provider;
 
         providers.Changed += (_, _) =>
         {
@@ -65,7 +63,7 @@ internal sealed partial class ProvidersListPage : DynamicListPage
         {
             Title = provider.Name,
             Subtitle = provider.BaseUrl,
-            Icon = new IconInfo(ProviderIcon),
+            Icon = Icons.Provider,
             MoreCommands = [new CommandContextItem(CreateDeletePage(provider)) { Title = "Delete" }],
         };
     }
@@ -76,7 +74,7 @@ internal sealed partial class ProvidersListPage : DynamicListPage
         return new ListItem(CreateNewPage())
         {
             Title = title,
-            Icon = new IconInfo(ProviderIcon),
+            Icon = Icons.New,
         };
     }
 
@@ -109,7 +107,7 @@ internal sealed partial class ConfirmDeleteProviderPage : ContentPage
     {
         _form = new ConfirmDeleteProviderForm(providers, secrets, agents, provider);
         Title = $"Delete {provider.Name}";
-        Icon = new IconInfo("\uE968");
+        Icon = Icons.Delete;
     }
 
     public override IContent[] GetContent() => [_form];

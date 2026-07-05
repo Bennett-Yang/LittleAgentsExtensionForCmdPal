@@ -1,0 +1,28 @@
+Task 29 evidence: provider delete orphan-block
+
+Changed files:
+- LittleAgentsExtension.Tests/ProviderDeleteOrphanTests.cs
+- .omo/evidence/task-29-little-agents-mvp.txt
+
+Existing implementation verified:
+- LittleAgentsExtension/Pages/Providers/ProvidersListPage.cs
+
+Verification commands and results:
+- LSP diagnostics on changed C# test file
+  Result: C# LSP server is not installed; verification used source reads and dotnet commands.
+- Pure line count:
+  - ProviderDeleteOrphanTests.cs: 135
+- dotnet test "LittleAgentsExtension.Tests\LittleAgentsExtension.Tests.csproj" -c Debug -p:Platform=x64 --filter "FullyQualifiedName~ProviderDeleteOrphanTests"
+  Result: 3 passed; 0 failed; 0 skipped
+- dotnet test "LittleAgentsExtension.Tests\LittleAgentsExtension.Tests.csproj" -c Debug -p:Platform=x64
+  Result: 89 passed; 0 failed; 0 skipped
+- dotnet build "LittleAgentsExtension\LittleAgentsExtension.csproj" -c Debug -p:Platform=x64
+  Result: exit 0; 0 warnings; 0 errors
+
+Coverage notes:
+- Delete provider with zero referencing agents removes the provider and deletes its secret.
+- Delete provider with two referencing agents keeps the provider, keeps the secret, and names both agents in the toast result.
+- Delete provider with five referencing agents keeps the provider/secret and lists the first three names with `, ...` suffix.
+
+Notes:
+- The T29 production orphan-block behavior was already present in ProvidersListPage; this task added the missing acceptance tests and verified the implementation.

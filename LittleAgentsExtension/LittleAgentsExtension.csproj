@@ -99,6 +99,7 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(Configuration)'=='Release'">
+    <Compile Remove="Pages\_Spikes\**\*.cs" />
     <TrimmerSingleWarn Include="OpenAI" />
     <TrimmerSingleWarn Include="Microsoft.Extensions.AI.OpenAI" />
   </ItemGroup>

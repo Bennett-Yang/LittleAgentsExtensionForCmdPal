@@ -1,5 +1,9 @@
 OpenClipboard
 CloseClipboard
+EmptyClipboard
 GetClipboardData
+SetClipboardData
+GlobalAlloc
+GlobalFree
 GlobalLock
 GlobalUnlock

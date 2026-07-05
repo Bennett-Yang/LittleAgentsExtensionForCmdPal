@@ -31,6 +31,7 @@ public sealed class ChatRunPageReplyTests
         InvokeCommand(page, "Reply");
         RunInputForm form = Assert.IsType<RunInputForm>(Assert.Single(page.GetContent()));
         form.SubmitForm("{\"Input\":\"follow-up {selection}\"}");
+        Assert.IsType<MarkdownContent>(Assert.Single(page.GetContent()));
         await GetStreamTask(page).WaitAsync(TimeSpan.FromSeconds(1));
 
         Assert.Equal(1, clipboardReads);
@@ -46,6 +47,7 @@ public sealed class ChatRunPageReplyTests
             message => Assert.Equal(new ChatMessage(ChatRole.Assistant, "assistant-one"), message),
             message => Assert.Equal(new ChatMessage(ChatRole.User, "follow-up {selection}"), message),
             message => Assert.Equal(new ChatMessage(ChatRole.Assistant, "assistant-two"), message));
+        Assert.Contains("assistant-one\n\n**You:** follow-up {selection}", NormalizeNewlines(GetBody(page)), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -118,6 +120,8 @@ public sealed class ChatRunPageReplyTests
         MarkdownContent output = GetField<MarkdownContent>(page, "_output");
         return (string)(typeof(MarkdownContent).GetProperty("Body") ?? throw new InvalidOperationException("MarkdownContent.Body is missing.")).GetValue(output)!;
     }
+
+    private static string NormalizeNewlines(string value) => value.Replace("\r\n", "\n", StringComparison.Ordinal);
 
     private static void InvokeCommand(ChatRunPage page, string title)
     {

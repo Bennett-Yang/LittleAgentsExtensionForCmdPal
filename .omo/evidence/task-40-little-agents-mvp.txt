@@ -1,0 +1,34 @@
+Task 40 evidence: SettingsPage with toolkit Settings + JsonSettingsManager
+
+Status: implemented with approved TextSetting substitute.
+
+Decision context:
+- The active plan originally requested NumberSetting for default temperature.
+- `Microsoft.CommandPalette.Extensions` 0.5.250829002 does not expose NumberSetting.
+- Available setting types were verified by compile/reflection probes: TextSetting, ToggleSetting, ChoiceSetSetting, generic Setting<T>, Settings, and JsonSettingsManager.
+- User approved option A: use TextSetting plus parsing for temperature.
+
+Implementation:
+- Added `LittleAgentsExtension/Pages/SettingsPage.cs` with `LittleAgentsSettingsManager : JsonSettingsManager`.
+- Settings are exposed through the official Command Palette gear via `LittleAgentsExtensionCommandsProvider.Settings`.
+- The old list-level temporary Settings placeholder/toast was removed.
+- Runtime settings are passed from `LittleAgentsExtensionCommandsProvider` to `AgentsListPage`, then to `AgentRunCommand`, then to `ChatRunPage`.
+- Temperature parsing uses invariant culture; blank, invalid, below 0.0, or above 2.0 values fall back to the default runtime temperature.
+- Valid values in the inclusive 0.0 to 2.0 range are passed to chat requests.
+- System prefix text is read from settings and prepended by the existing `ChatRunPage.BuildRequest()` runtime-settings path.
+
+Automated verification:
+- Focused T40 tests passed: 16 passed, 0 failed, 0 skipped.
+- Full test suite passed: 105 passed, 0 failed, 0 skipped.
+- Debug build passed: 0 errors; only existing warnings remained after fixing the DEBUG-only markdown ticker partial warning.
+- Release build passed: 0 errors; only existing allowed warnings remained.
+- Static placeholder scan under shipped source returned COUNT=0 for `Settings are available.*after T40` and `Wired in T30`.
+- File-size scan returned COUNT=0 for non-bin/obj C# files over 250 raw lines.
+- `#pragma warning disable` scan returned COUNT=0.
+- shipped-code TODO scan under `LittleAgentsExtension/` excluding bin/obj returned COUNT=0.
+
+Manual remainder:
+- The exact visual gear UI cannot be observed by automation in this harness. F3 manual QA remains responsible for confirming the Command Palette gear surface shows the settings and that changing them affects a real run.
+
+Verdict:
+- Pass for T40's agent-executable acceptance criteria with the approved TextSetting substitute.

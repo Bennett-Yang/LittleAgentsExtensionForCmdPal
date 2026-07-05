@@ -75,3 +75,25 @@ cleanup:
 risks:
   - Manual UI create/edit smoke was unavailable, so rendered Adaptive Card behavior in the Command Palette host was not directly exercised.
   - Debug assertion checks the default LocalState providers.json path because ProviderStore does not expose its active path.
+
+addendum_2026-06-28:
+  scope:
+    changed:
+      - LittleAgentsExtension.Tests/ProviderEditFormTests.cs
+      - .omo/plans/little-agents-mvp.md
+      - .omo/evidence/task-28-little-agents-mvp.txt
+  executable_coverage_added:
+    - SubmitForm create path persists ProviderDef metadata and stores apiKey only in ISecretStore.
+    - SubmitForm create path rejects empty ApiKey without saving provider metadata.
+    - SubmitForm rejects non-http/non-https BaseUrl without saving provider metadata or secrets.
+    - SubmitForm edit path keeps existing secret when ApiKey is empty.
+    - SubmitForm edit path replaces existing secret when ApiKey is present.
+    - Provider store file assertions confirm submitted canary keys are absent from providers.json.
+  verification:
+    - command: dotnet test "LittleAgentsExtension.Tests\LittleAgentsExtension.Tests.csproj" -c Debug -p:Platform=x64 --filter "FullyQualifiedName~ProviderEditFormTests"
+      result: Passed; Failed 0, Passed 5, Skipped 0, Total 5.
+    - command: dotnet test "LittleAgentsExtension.Tests\LittleAgentsExtension.Tests.csproj" -c Debug -p:Platform=x64 --no-build
+      result: Passed; Failed 0, Passed 98, Skipped 0, Total 98.
+    - command: dotnet build "LittleAgentsExtension\LittleAgentsExtension.csproj" -c Debug -p:Platform=x64
+      result: Build succeeded; 0 warnings, 0 errors.
+  status: plan checkbox marked complete after executable coverage and build/test verification.

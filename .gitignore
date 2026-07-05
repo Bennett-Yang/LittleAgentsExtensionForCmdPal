@@ -1,3 +1,5 @@
 .codegraph
 */bin
 *obj
+.codegraph
+.vs

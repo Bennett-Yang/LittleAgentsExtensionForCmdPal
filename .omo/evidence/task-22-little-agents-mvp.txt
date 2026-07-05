@@ -53,3 +53,10 @@ Adversarial notes:
 - dirty_worktree/no git limitation: git status showed the workspace contents as untracked, so git diff could not be used as authoritative evidence.
 - manual_smoke_unavailable: host click smoke was not available in this worker environment.
 - hung_commands: no command hung; build completed in about 10 seconds.
+
+addendum_2026-06-28:
+- Status reconciled after T30.
+- T22 was a build-order placeholder task whose own text says "Must NOT ship this state" and "T30 replaces this code".
+- T30 evidence confirms production source contains 0 matches for "Wired in T30" and covers the real replacement paths with 4 focused tests: zero-provider + New Agent opens ProviderEditFormPage with toast, provider-present + New Agent opens AgentEditFormPage, Manage Providers opens ProvidersListPage, and Settings shows the T40-directed temporary settings toast.
+- Debug build and full test suite passed after the replacement in T30; T28 addendum later raised the full suite to 98/98 passing with Debug build 0 warnings/errors.
+- Plan checkbox marked complete as superseded/replaced by the verified T30 implementation. The obsolete placeholder click smoke is intentionally not reintroduced.

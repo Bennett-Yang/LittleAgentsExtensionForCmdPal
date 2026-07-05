@@ -1,0 +1,27 @@
+Task 37 evidence - AgentsListPage agent invocation to ChatRunPage
+
+Changed files:
+- LittleAgentsExtension/Pages/Agents/AgentsListPage.cs
+- LittleAgentsExtension.Tests/AgentsListPageInvocationTests.cs
+- .omo/evidence/task-37-little-agents-mvp.txt
+
+Implementation summary:
+- AgentsListPage now stores injected ProviderStore, ISecretStore, ILlmChatClient, and RunSessionCoordinator.
+- Agent rows now use AgentRunCommand instead of the old agent placeholder command.
+- AgentRunCommand loads the provider fresh on Invoke and returns a ShowToast result containing "Provider" when missing.
+- AgentRunCommand reads the API key fresh from ISecretStore on Invoke and returns a ShowToast result containing "API key" when missing or empty.
+- On success, AgentRunCommand returns a GoToPage result targeting a new ChatRunPage with the shared RunSessionCoordinator and a WindowsClipboardWriter.
+- Pinned placeholder commands remain unchanged and still return the "Wired in T30" toast.
+
+Automated verification:
+- dotnet test "LittleAgentsExtension.Tests\\LittleAgentsExtension.Tests.csproj" --filter "FullyQualifiedName~AgentsListPageInvocationTests" -c Debug -p:Platform=x64 -> 5 passed, 0 failed, 0 skipped.
+- dotnet test "LittleAgentsExtension.Tests\\LittleAgentsExtension.Tests.csproj" -c Debug -p:Platform=x64 -> 81 passed, 0 failed, 0 skipped.
+- dotnet build "LittleAgentsExtension\\LittleAgentsExtension.csproj" -c Debug -p:Platform=x64 -> 0 warnings, 0 errors.
+
+Independent source checks:
+- AgentsListPage.cs uses _providers.Load() and _secrets.TryGet(...) inside AgentRunCommand.Invoke(), so validation is not captured at item construction time.
+- AgentsListPageInvocationTests.cs covers valid navigation, missing provider toast, missing API key toast, fresh validation after item construction, and shared-session cancellation when rendering a second {input} ChatRunPage.
+- No T38+ docs/polish/manual QA files were changed.
+
+Notes:
+- Manual Command Palette smoke for integrated navigation remains a later/manual QA gate; this task is accepted via deterministic tests and build.

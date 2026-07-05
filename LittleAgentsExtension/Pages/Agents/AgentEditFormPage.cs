@@ -15,7 +15,7 @@ internal sealed partial class AgentEditFormPage : ContentPage
     {
         _form = new AgentEditForm(agents, providers, existing);
         Title = existing == null ? "New agent" : "Edit agent";
-        Icon = new IconInfo("\uE710");
+        Icon = Icons.New;
     }
     public override IContent[] GetContent() => [_form];
 }
