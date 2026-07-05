@@ -30,6 +30,17 @@ Press `F5` to build and deploy the MSIX package.
 
 Open Command Palette and run `Reload Command Palette Extension` so CmdPal reloads Little Agents.
 
+## WinGet Release Build
+
+The WinGet release path uses an Inno Setup `.exe` installer that registers the extension COM server for Command Palette discovery.
+
+```powershell
+cd LittleAgentsExtension
+.\build-exe.ps1 -Version "0.1.0.0"
+```
+
+The installer output is written to `LittleAgentsExtension/bin/Release/installer/`.
+
 ## Supported Providers
 
 Little Agents can call any service that exposes an OpenAI-compatible `/v1/chat/completions` endpoint. The provider base URL should include the API root, including `/v1` when the service expects it. The request layer appends `/chat/completions` after that base URL.
@@ -70,7 +81,7 @@ Little Agents does not bypass TLS certificate validation. For local providers wi
 
 ## License
 
-No license file present yet.
+MIT. See `LICENSE`.
 
 ## Screenshots
 
