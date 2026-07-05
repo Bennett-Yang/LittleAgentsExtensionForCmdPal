@@ -3,3 +3,12 @@
 *obj
 .codegraph
 .vs
+*/AppPackages
+*/bin
+*/obj
+*.pfx
+*.cer
+*.msix
+*.msixbundle
+LittleAgentsExtension/setup-x64.iss
+LittleAgentsExtension/setup-arm64.iss
