@@ -15,3 +15,6 @@ Installers:
   InstallerSha256: 582772c0614e17af57a634367ced36f7fa6c43091c746e38a05176caa9a26702
 ManifestType: installer
 ManifestVersion: 1.12.0
+Dependencies:
+  PackageDependencies:
+  - PackageIdentifier: Microsoft.WindowsAppRuntime.#.#
