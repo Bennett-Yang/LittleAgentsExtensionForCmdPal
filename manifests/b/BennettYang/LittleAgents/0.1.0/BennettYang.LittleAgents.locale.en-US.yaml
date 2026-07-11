@@ -19,6 +19,6 @@ Tags:
 - llm
 - prompt
 ReleaseNotes: First public release of Little Agents for PowerToys Command Palette.
-ReleaseNotesUrl: https://github.com/Bennett-Yang/LittleAgentsExtensionForCmdPal/releases/tag/<TAG_OR_RELEASE>
+ReleaseNotesUrl: https://github.com/Bennett-Yang/LittleAgentsExtensionForCmdPal/releases/tag/LittleAgentsExtension-v0.1.0
 ManifestType: defaultLocale
 ManifestVersion: 1.12.0
