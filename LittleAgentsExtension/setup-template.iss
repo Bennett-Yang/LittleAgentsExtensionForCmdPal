@@ -36,5 +36,5 @@ Source: "bin\Release\win-x64\publish\*"; DestDir: "{app}"; Flags: ignoreversion 
 Name: "{group}\Little Agents"; Filename: "{app}\LittleAgentsExtension.exe"
 
 [Registry]
-Root: HKCU; Subkey: "SOFTWARE\Classes\CLSID\{{36fde8e8-87f6-4677-a559-bc8ac65d97c4}"; ValueData: "LittleAgentsExtension"
-Root: HKCU; Subkey: "SOFTWARE\Classes\CLSID\{{36fde8e8-87f6-4677-a559-bc8ac65d97c4}\LocalServer32"; ValueData: "{app}\LittleAgentsExtension.exe -RegisterProcessAsComServer"
+Root: HKCU; Subkey: "SOFTWARE\Classes\CLSID\{{36fde8e8-87f6-4677-a559-bc8ac65d97c4}"; ValueData: "LittleAgentsExtension"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "SOFTWARE\Classes\CLSID\{{36fde8e8-87f6-4677-a559-bc8ac65d97c4}\LocalServer32"; ValueData: "{app}\LittleAgentsExtension.exe -RegisterProcessAsComServer"; Flags: uninsdeletekey
