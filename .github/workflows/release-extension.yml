@@ -66,6 +66,7 @@ jobs:
           $projectFile = "${{ env.FOLDER_NAME }}/${{ env.EXTENSION_NAME }}.csproj"
           $xml = [xml](Get-Content $projectFile)
           $version = $xml.Project.PropertyGroup.AppxPackageVersion | Select-Object -First 1
+          if (-not $version) { $version = $xml.Project.PropertyGroup.Version | Select-Object -First 1 }
           if (-not $version) { throw "Version not found in project file" }
         }
         echo "VERSION=$version" >> $env:GITHUB_OUTPUT
