@@ -10,10 +10,10 @@ ReleaseDate: 2026-07-11
 Installers:
 - Architecture: x64
   InstallerUrl: https://github.com/Bennett-Yang/LittleAgentsExtensionForCmdPal/releases/download/LittleAgentsExtension-v0.1.0/LittleAgentsExtension-Setup-0.1.0-x64.exe
-  InstallerSha256: 34BBF1685D1332B98B348C1F1594D29F9D1F76E8892DE751FE2BD90E4202DE37
+  InstallerSha256: fa608a8a8c4c466ce8152a535f758fa499a9e32a302102811bd392ea3d8f7c20
 - Architecture: arm64
   InstallerUrl: https://github.com/Bennett-Yang/LittleAgentsExtensionForCmdPal/releases/download/LittleAgentsExtension-v0.1.0/LittleAgentsExtension-Setup-0.1.0-arm64.exe
-  InstallerSha256: 923A2866B2BB699CE77847A7B8A7DEB9C89754A599A51B9D6935948988879FF0
+  InstallerSha256: c6e5f8859934b582d38eb7c8ed0de5617c29f9ba932d669ce916121e2edff7cc
 ManifestType: installer
 ManifestVersion: 1.12.0
 Dependencies:
