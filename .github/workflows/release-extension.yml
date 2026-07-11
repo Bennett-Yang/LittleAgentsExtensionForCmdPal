@@ -17,6 +17,11 @@ on:
         description: 'Version number (leave empty to auto-detect)'
         required: false
         type: string
+      create_release:
+        description: "Create a GitHub release"
+        required: false
+        default: true
+        type: boolean
       release_notes:
         description: 'What is new in this version'
         required: false
