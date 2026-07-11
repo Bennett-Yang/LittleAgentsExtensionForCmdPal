@@ -2,8 +2,11 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
 
 PackageIdentifier: BennettYang.LittleAgents
-PackageVersion: 0.1.0
+PackageVersion: 0.1.0.0
 InstallerType: inno
+Scope: user
+UpgradeBehavior: install
+ReleaseDate: 2026-07-11
 Installers:
 - Architecture: x64
   InstallerUrl: https://github.com/Bennett-Yang/LittleAgentsExtensionForCmdPal/releases/download/LittleAgentsExtension-v0.1.0/LittleAgentsExtension-Setup-0.1.0-x64.exe
@@ -13,3 +16,6 @@ Installers:
   InstallerSha256: 923A2866B2BB699CE77847A7B8A7DEB9C89754A599A51B9D6935948988879FF0
 ManifestType: installer
 ManifestVersion: 1.12.0
+Dependencies:
+  PackageDependencies:
+  - PackageIdentifier: Microsoft.WindowsAppRuntime.#.#

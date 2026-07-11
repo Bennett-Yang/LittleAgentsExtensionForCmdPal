@@ -12,3 +12,4 @@
 *.msixbundle
 LittleAgentsExtension/setup-x64.iss
 LittleAgentsExtension/setup-arm64.iss
+.debug-journal.md
