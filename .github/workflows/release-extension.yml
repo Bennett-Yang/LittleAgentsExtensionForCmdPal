@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version number (leave empty to auto-detect)'
+        description: ''
         required: false
         type: string
       create_release:
