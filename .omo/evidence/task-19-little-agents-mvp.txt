@@ -1,3 +1,0 @@
-Verified `LittleAgentsExtension.Tests/TemplateRendererTests.cs` covers the 11 requested placeholder and escape cases.
-`dotnet test "LittleAgentsExtension.Tests/LittleAgentsExtension.Tests.csproj" --filter "FullyQualifiedName~TemplateRendererTests" -c Debug -p:Platform=x64` passed with 11 tests.
-`dotnet test "LittleAgentsExtension.Tests/LittleAgentsExtension.Tests.csproj" -c Debug -p:Platform=x64` passed with 53 total tests.
