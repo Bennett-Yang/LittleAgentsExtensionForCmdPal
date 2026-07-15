@@ -12,4 +12,9 @@
 *.msixbundle
 LittleAgentsExtension/setup-x64.iss
 LittleAgentsExtension/setup-arm64.iss
+LittleAgentsExtension/bundle_mapping.txt
 .debug-journal.md
+.omo
+.codex
+.agents
+test_sign.ps1

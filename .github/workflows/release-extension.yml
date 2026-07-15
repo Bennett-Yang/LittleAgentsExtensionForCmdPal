@@ -1,133 +1,143 @@
-# TEMPLATE: Extension EXE Installer Build and Release Workflow
-# 
-# To use this template for a new extension:
-# 1. Copy this file to a new workflow file (e.g., release-myextension-exe.yml)
-# 2. Update Global constants with your data:
-# - GITHUB_REPO_URL with your GitHub repository URL (e.g., https://github.com/yourusername/YourRepository)
-# - DISPLAY_NAME with your display name (e.g., My Extension)
-# - EXTENSION_NAME with your extension name (e.g., CmdPalMyExtension)
-# - FOLDER_NAME with your project folder name (e.g., CmdPalMyExtension)
-
-name: CmdPal Extension - Build EXE Installer
+name: Build Microsoft Store MSIX bundle
 
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: ''
+        description: Four-part MSIX version; leave blank to use AppxPackageVersion from the project
         required: false
         type: string
-      create_release:
-        description: "Create a GitHub release"
-        required: false
-        default: true
-        type: boolean
-      release_notes:
-        description: 'What is new in this version'
-        required: false
-        default: 'New release with latest updates and improvements.'
-        type: string
+  push:
+    tags:
+      - "store-v*"
 
+permissions:
+  contents: read
 
-# Global constants: UPDATE THESE, example; DISPLAY_NAME: ${{ vars.DISPLAY_NAME || 'CmdPal Name' }}
+concurrency:
+  group: store-package-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
-  DISPLAY_NAME: ${{ vars.DISPLAY_NAME || 'Little Agents' }}
-  EXTENSION_NAME: ${{ vars.EXTENSION_NAME || 'LittleAgentsExtension' }}
-  FOLDER_NAME: ${{ vars.FOLDER_NAME || 'LittleAgentsExtension' }}
-  GITHUB_REPO_URL: ${{ vars.GITHUB_REPO_URL || 'https://github.com/Bennett-Yang/LittleAgentsExtensionForCmdPal' }}
-
+  PROJECT_FILE: LittleAgentsExtension/LittleAgentsExtension.csproj
+  TEST_PROJECT: LittleAgentsExtension.Tests/LittleAgentsExtension.Tests.csproj
+  STORE_BUILD_SCRIPT: LittleAgentsExtension/build-store.ps1
 
 jobs:
-  build:
+  build-store-package:
+    name: Build and validate Partner Center bundle
     runs-on: windows-2022
-    permissions:
-      contents: write
-      actions: read
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Setup .NET 9
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '9.0.x'
-    
-    - name: Install Inno Setup
-      run: choco install innosetup -y --no-progress
-      shell: pwsh
-    
-    - name: Get version from project
-      id: version
-      run: |
-        if ("${{ github.event.inputs.version }}" -ne "") {
-          $version = "${{ github.event.inputs.version }}"
-        } else {
-          $projectFile = "${{ env.FOLDER_NAME }}/${{ env.EXTENSION_NAME }}.csproj"
-          $xml = [xml](Get-Content $projectFile)
-          $version = $xml.Project.PropertyGroup.AppxPackageVersion | Select-Object -First 1
-          if (-not $version) { $version = $xml.Project.PropertyGroup.Version | Select-Object -First 1 }
-          if (-not $version) { throw "Version not found in project file" }
-        }
-        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
-        Write-Host "Using version: $version"
-      shell: pwsh
-    
-    - name: Build EXE installers (x64 and ARM64)
-      run: |
-        Set-Location "${{ env.FOLDER_NAME }}"
-        .\build-exe.ps1 -Version "${{ steps.version.outputs.VERSION }}" -Platforms @("x64", "arm64")
-      shell: pwsh
-    
-    - name: Upload x64 installer artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.EXTENSION_NAME }}-x64-installer
-        path: ${{ env.FOLDER_NAME }}/bin/Release/installer/*-x64.exe
-        if-no-files-found: error
+    timeout-minutes: 30
 
-    - name: Upload ARM64 installer artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.EXTENSION_NAME }}-arm64-installer
-        path: ${{ env.FOLDER_NAME }}/bin/Release/installer/*-arm64.exe
-        if-no-files-found: warn
-    
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ env.EXTENSION_NAME }}-v${{ steps.version.outputs.VERSION }}
-        name: "${{ env.DISPLAY_NAME }} v${{ steps.version.outputs.VERSION }}"
-        body: |
-          ## 🎯 ${{ env.DISPLAY_NAME }} ${{ steps.version.outputs.VERSION }}
-          
-          ## What's New
-          ${{ github.event.inputs.release_notes }}
-          
-          ## 📦 Installation
-          
-          Download the installer for your system architecture:
-          
-          - **x64 (Intel/AMD)**: `${{ env.DISPLAY_NAME }}-Setup-${{ steps.version.outputs.VERSION }}-x64.exe`
-          - **ARM64 (Windows on ARM)**: `${{ env.DISPLAY_NAME }}-Setup-${{ steps.version.outputs.VERSION }}-arm64.exe`
-          
-          1. Download the appropriate installer from the Assets section below
-          2. Run the installer with administrator privileges
-          3. The extension will be registered and available in Command Palette
-          
-          
-          ## 🔗 More Information
-          
-          Repository: ${{ env.GITHUB_REPO_URL }}
-        files: ${{ env.FOLDER_NAME }}/bin/Release/installer/*.exe
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Build summary
-      run: |
-        Write-Host "🎉 ${{ env.DISPLAY_NAME }} Release Complete!" -ForegroundColor Green
-        Write-Host "Version: ${{ steps.version.outputs.VERSION }}" -ForegroundColor Yellow
-        Write-Host "📁 Installer uploaded to GitHub Release" -ForegroundColor Green
-      shell: pwsh
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Resolve package version
+        id: version
+        shell: pwsh
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          $requestedVersion = ([string]$env:REQUESTED_VERSION).Trim()
+
+          if ($requestedVersion) {
+              $version = $requestedVersion
+              $source = "workflow input"
+          }
+          elseif ($env:REF_TYPE -eq "tag") {
+              $tag = $env:REF_NAME
+              if (-not $tag.StartsWith("store-v", [StringComparison]::Ordinal)) {
+                  throw "Store tag '$tag' must start with 'store-v'."
+              }
+
+              $version = $tag.Substring("store-v".Length)
+              $source = "tag $tag"
+          }
+          else {
+              [xml]$project = Get-Content -LiteralPath $env:PROJECT_FILE
+              $version = [string]($project.Project.PropertyGroup.AppxPackageVersion |
+                  Where-Object { $_ } |
+                  Select-Object -First 1)
+              $source = $env:PROJECT_FILE
+          }
+
+          if ($version -notmatch '^\d+\.\d+\.\d+\.\d+$') {
+              throw "MSIX version '$version' must contain four numeric components, for example 0.1.2.0."
+          }
+
+          foreach ($component in $version.Split('.')) {
+              [int]$number = 0
+              if (-not [int]::TryParse($component, [ref]$number) -or $number -gt 65535) {
+                  throw "Every MSIX version component must be between 0 and 65535: '$version'."
+              }
+          }
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Building package version $version from $source."
+
+      - name: Restore test dependencies
+        shell: pwsh
+        run: dotnet restore $env:TEST_PROJECT
+
+      - name: Run tests
+        shell: pwsh
+        run: dotnet test $env:TEST_PROJECT --configuration Release --no-restore
+
+      - name: Build and validate x64 and ARM64 MSIX bundle
+        shell: pwsh
+        run: |
+          & $env:STORE_BUILD_SCRIPT -Version "${{ steps.version.outputs.version }}"
+
+      - name: Create bundle checksum
+        id: package
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $bundle = "LittleAgentsExtension/LittleAgentsExtension_${version}_Bundle.msixbundle"
+
+          if (-not (Test-Path -LiteralPath $bundle)) {
+              throw "Expected Store bundle was not produced: $bundle"
+          }
+
+          $hash = Get-FileHash -LiteralPath $bundle -Algorithm SHA256
+          $checksum = "$bundle.sha256"
+          "$($hash.Hash)  $(Split-Path -Leaf $bundle)" |
+              Set-Content -LiteralPath $checksum -Encoding ascii
+
+          "bundle_path=$bundle" >> $env:GITHUB_OUTPUT
+          "checksum_path=$checksum" >> $env:GITHUB_OUTPUT
+          "sha256=$($hash.Hash)" >> $env:GITHUB_OUTPUT
+
+      - name: Upload Partner Center submission artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LittleAgentsExtension-${{ steps.version.outputs.version }}-PartnerCenter
+          path: |
+            ${{ steps.package.outputs.bundle_path }}
+            ${{ steps.package.outputs.checksum_path }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Write build summary
+        shell: pwsh
+        run: |
+          @(
+              "## Microsoft Store package"
+              ""
+              "- Version: ${{ steps.version.outputs.version }}"
+              "- Architectures: x64, ARM64"
+              "- Bundle: ${{ steps.package.outputs.bundle_path }}"
+              "- SHA-256: ${{ steps.package.outputs.sha256 }}"
+              "- Artifact: LittleAgentsExtension-${{ steps.version.outputs.version }}-PartnerCenter"
+              ""
+              "Upload the .msixbundle from this artifact to Partner Center. The bundle is intentionally unsigned; Microsoft Store signs it during ingestion."
+          ) >> $env:GITHUB_STEP_SUMMARY

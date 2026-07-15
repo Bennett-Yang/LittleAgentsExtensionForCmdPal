@@ -1,73 +1,94 @@
-# Publishing LittleAgents
+# Publishing Little Agents to Microsoft Store
 
-This guide covers the supported publishing paths for the LittleAgents MSIX package. Use placeholders while drafting commands. Don't record real certificate thumbprints, publisher subjects, Partner Center account names, tenant IDs, secrets, or maintainer identities in this file.
+Little Agents is distributed as an MSIX bundle so Windows registers its
+`com.microsoft.commandpalette` app extension and Command Palette can discover it.
 
-## 1. WinGet Path
+## Partner Center identity
 
-The preferred WinGet path is an Inno Setup `.exe` installer that publishes through GitHub Releases and then `microsoft/winget-pkgs`.
-
-Approved first-release metadata:
+The following values come from Partner Center under **Product management → Product identity** and must match exactly:
 
 | Field | Value |
 | --- | --- |
-| PackageIdentifier | `BennettYang.LittleAgents` |
-| PackageName | `Little Agents` |
-| Publisher | `Bennett Yang` |
-| Version | `0.1.0.0` |
-| License | `MIT` |
-| PackageUrl | `https://github.com/Bennett-Yang/LittleAgentsExtensionForCmdPal` |
-| PublisherUrl | `https://github.com/Bennett-Yang` |
-| PublisherSupportUrl | `https://github.com/Bennett-Yang/LittleAgentsExtensionForCmdPal/issues` |
-| PrivacyUrl | omitted |
+| Package/Identity/Name | `BennettYang.LittleAgentsExtensionforCommandPalette` |
+| Package/Identity/Publisher | `CN=F5B40A0F-B50F-4878-8D4E-AE4A09317B53` |
+| Package/Properties/PublisherDisplayName | `BennettYang` |
+| Reserved product name | `Little Agents Extension for Command Palette` |
+| Package version | `0.1.1.0` |
 
-Build local installers:
+These values are configured in `Package.appxmanifest` and `LittleAgentsExtension.csproj`.
+
+## Build the Store bundle
+
+Prerequisites:
+
+- .NET 9 SDK
+- Windows 10/11 SDK with `makeappx.exe`
+- Visual Studio MSIX tooling for IDE packaging commands
+
+Run from the project directory:
 
 ```powershell
 cd LittleAgentsExtension
-.\build-exe.ps1 -Version "0.1.0.0"
+.\build-store.ps1 -Version "0.1.1.0"
 ```
 
-The public WinGet manifest cannot be finalized until the installer files are uploaded to immutable public HTTPS URLs. The locale manifest must include:
+The script builds unsigned x64 and ARM64 MSIX packages and combines them into:
 
-```yaml
-Tags:
-- windows-commandpalette-extension
+```text
+LittleAgentsExtension_0.1.1.0_Bundle.msixbundle
 ```
 
-Only add a Windows App SDK runtime dependency if the project later takes a direct `Microsoft.WindowsAppSDK` dependency:
+Unsigned Store packages are expected: Microsoft Store signs the accepted package during ingestion. Do not replace the Partner Center publisher with a self-signed certificate subject for the Store submission build.
 
-```yaml
-Dependencies:
-  PackageDependencies:
-  - PackageIdentifier: Microsoft.WindowsAppRuntime.1.8
-```
+### Build with GitHub Actions
 
-Do not submit a WinGet PR without explicit approval.
+The `Build Microsoft Store MSIX bundle` workflow runs the tests, builds both
+architectures through `build-store.ps1`, validates the required runtime files,
+and uploads the bundle with its SHA-256 checksum.
 
-## 2. Self-Signed Dev Cert Path
+Run it manually from **Actions**. Leave the version input blank to use
+`AppxPackageVersion` from `LittleAgentsExtension.csproj`, or supply a four-part
+MSIX version such as `0.1.2.0`.
 
-For local development signing, create a self-signed code-signing certificate with a placeholder common name:
+Pushing a tag with the `store-v` prefix also runs the workflow and uses the tag
+suffix as the package version:
 
 ```powershell
-New-SelfSignedCertificate -Type Custom -Subject "CN=<your-name>" -KeyUsage DigitalSignature -FriendlyName "LittleAgents Dev" -CertStoreLocation "Cert:\CurrentUser\My" -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3","2.5.29.19={text}")
+git tag store-v0.1.2.0
+git push origin store-v0.1.2.0
 ```
 
-After creating the certificate, update `Package.appxmanifest` so `<Identity Publisher="..."/>` matches the certificate CN exactly. For example, if the certificate subject is `CN=<your-name>`, the manifest publisher value must be `CN=<your-name>`.
+Download the `LittleAgentsExtension-<version>-PartnerCenter` workflow artifact
+and upload the `.msixbundle` inside it to Partner Center. The individual x64 and
+ARM64 packages are already contained in the bundle.
 
-Sign the built MSIX with the certificate thumbprint placeholder:
+## Validate before submission
+
+Confirm that both architecture packages exist:
 
 ```powershell
-signtool sign /fd SHA256 /sha1 <thumbprint> <msix>
+Get-ChildItem AppPackages -Recurse -Filter *.msix
 ```
 
-## 3. Microsoft Store Path
+Confirm the bundle exists:
 
-Follow the PowerToys Command Palette publish guidance for Store distribution: https://learn.microsoft.com/en-us/windows/powertoys/command-palette/publish-extension-store
+```powershell
+Get-Item LittleAgentsExtension_0.1.1.0_Bundle.msixbundle
+```
 
-Use Partner Center to reserve the extension name, upload the signed MSIX package, and fill the required metadata. Keep package names, publisher fields, screenshots, descriptions, and Store listing details aligned with the reserved Partner Center app record.
+The package manifest must continue to declare both:
 
-## 4. Sparse Package and CI Signing Reference
+- `windows.comServer` for activation.
+- `windows.appExtension` with the name `com.microsoft.commandpalette` for discovery.
 
-For advanced sparse-cert handling or CI signing patterns, see the PowerToys package identity script: https://github.com/microsoft/PowerToys/blob/main/src/PackageIdentity/BuildSparsePackage.ps1
+## Submit in Partner Center
 
-Treat that script as a reference for sparse package certificate handling. Don't copy real certificate subjects, thumbprints, account names, or signing secrets from local machines or CI systems into this repository.
+1. Open **Apps and games → Little Agents Extension for Command Palette**.
+2. Open the submission and go to **Packages**.
+3. Upload `LittleAgentsExtension_0.1.1.0_Bundle.msixbundle`.
+4. In the English description, state that Little Agents integrates with Windows PowerToys Command Palette.
+5. In **Supplemental info → Additional testing information**, tell certification that PowerToys with Command Palette is required and explain how to reload extensions.
+6. Enter `https://github.com/Bennett-Yang/LittleAgentsExtensionForCmdPal/blob/main/PRIVACY.md` as the privacy policy URL after `PRIVACY.md` has been pushed to the public `main` branch.
+7. Complete age ratings, properties, availability, screenshots, and privacy declarations, then submit for certification.
+
+Reference: https://learn.microsoft.com/windows/powertoys/command-palette/publish-extension-store
