@@ -36,6 +36,25 @@ public sealed partial class ChatRunPageStreamingTests
     }
 
     [Fact]
+    public async Task StartStream_truncates_provider_output_at_safety_limit()
+    {
+        string oversizedChunk = new string('x', ChatRunPage.MaximumAssistantResponseCharacters) + "SECRET-TAIL";
+        ScriptedLlmChatClient client = new(call => EmitChunks(call, oversizedChunk));
+        ChatRunPage page = CreatePage(client);
+
+        StartStream(page, "hello");
+        await GetStreamTask(page).WaitAsync(TimeSpan.FromSeconds(1));
+
+        string assistant = GetField<string>(page, "_lastAssistantText");
+        Assert.Equal(ChatRunPage.MaximumAssistantResponseCharacters, assistant.Length);
+        Assert.DoesNotContain("SECRET-TAIL", assistant, StringComparison.Ordinal);
+        Assert.Contains("response truncated", GetBody(page), StringComparison.Ordinal);
+        Assert.Collection(GetHistory(page),
+            message => Assert.Equal(new ChatMessage(ChatRole.User, "hello"), message),
+            message => Assert.Equal(assistant, message.Content));
+    }
+
+    [Fact]
     public async Task StartStream_marks_stopped_and_keeps_only_user_history_when_current_stream_is_cancelled()
     {
         TaskCompletionSource secondChunkSent = Signal();
@@ -60,6 +79,22 @@ public sealed partial class ChatRunPageStreamingTests
         await AssertStatusErrorAsync();
         await AssertErrorAsync(new SyntheticStatusCodeException(HttpStatusCode.PaymentRequired, "pay " + ApiKey), "> **Error 402:** pay ***", forbidden: "pay " + ApiKey, expectedToast: "Error 402");
         await AssertErrorAsync(new HttpRequestException("network", new AuthenticationException("cert chain " + ApiKey)), "> **Provider TLS certificate rejected.**", forbidden: "> **Network error:**", expectedToast: "TLS rejected");
+    }
+
+    [Fact]
+    public async Task StartStream_scrubs_exact_non_openai_api_key_from_error()
+    {
+        const string genericApiKey = "provider-token-7f93e2";
+        SyntheticStatusCodeException exception = new(HttpStatusCode.BadGateway, "upstream echoed " + genericApiKey);
+        ScriptedLlmChatClient client = new(call => ThrowAfterChunk(call, "visible", exception));
+        ChatRunPage page = CreatePage(client, apiKey: genericApiKey);
+
+        StartStream(page, "hello");
+        await GetStreamTask(page).WaitAsync(TimeSpan.FromSeconds(1));
+
+        string body = GetBody(page);
+        Assert.Contains("> **Error 502:** upstream echoed ***", body, StringComparison.Ordinal);
+        Assert.DoesNotContain(genericApiKey, body, StringComparison.Ordinal);
     }
 
     [Fact]

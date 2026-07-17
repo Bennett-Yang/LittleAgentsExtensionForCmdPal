@@ -4,14 +4,16 @@ namespace LittleAgentsExtension.Llm;
 
 internal static class TemplateRenderer
 {
+    internal const int SelectionCharacterLimit = 8000;
+
     /// <summary>
     /// Renders the first ChatRunPage user turn; reply text bypasses template rendering and is sent verbatim.
     /// </summary>
     public static string Render(string template, string? input, string? selection)
     {
         string resolvedInput = input ?? string.Empty;
-        string resolvedSelection = selection is { Length: > 8000 }
-            ? "[truncated to 8000 chars]\n" + selection[..8000]
+        string resolvedSelection = selection is { Length: > SelectionCharacterLimit }
+            ? $"[truncated to {SelectionCharacterLimit} chars]\n" + selection[..SelectionCharacterLimit]
             : selection ?? string.Empty;
 
         StringBuilder builder = new(template.Length + 32);

@@ -60,7 +60,7 @@ internal sealed class OpenAiChatClient : ILlmChatClient
         }
         catch (Exception exception)
         {
-            throw new InvalidOperationException($"Provider misconfigured: {ScrubSecrets(exception.Message)}");
+            throw new InvalidOperationException($"Provider misconfigured: {ScrubSecrets(exception.Message, apiKey)}");
         }
     }
 
@@ -113,5 +113,9 @@ internal sealed class OpenAiChatClient : ILlmChatClient
         _ => throw new ArgumentOutOfRangeException(nameof(role), role, null),
     };
 
-    private static string ScrubSecrets(string message) => Regex.Replace(message, SecretPattern, "***");
+    private static string ScrubSecrets(string message, string apiKey)
+    {
+        string scrubbed = apiKey.Length == 0 ? message : message.Replace(apiKey, "***", StringComparison.Ordinal);
+        return Regex.Replace(scrubbed, SecretPattern, "***");
+    }
 }

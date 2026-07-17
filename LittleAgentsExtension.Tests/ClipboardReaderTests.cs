@@ -103,6 +103,26 @@ public sealed class ClipboardReaderTests
         }
     }
 
+    [Fact]
+    public void DecodeUnicodeText_limits_managed_allocation_before_template_truncation()
+    {
+        char[] clipboardText = new string('x', TemplateRenderer.SelectionCharacterLimit + 100).Append('\0').ToArray();
+        nint textPointer = AllocateCharacters(clipboardText);
+        try
+        {
+            string? result = User32ClipboardReader.DecodeUnicodeText(
+                textPointer,
+                (nuint)(clipboardText.Length * sizeof(char)));
+
+            Assert.NotNull(result);
+            Assert.Equal(TemplateRenderer.SelectionCharacterLimit + 1, result.Length);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(textPointer);
+        }
+    }
+
     private static nint AllocateCharacters(char[] characters)
     {
         nint pointer = Marshal.AllocHGlobal(characters.Length * sizeof(char));

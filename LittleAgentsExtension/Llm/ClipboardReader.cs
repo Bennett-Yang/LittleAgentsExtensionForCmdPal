@@ -1,7 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using Windows.ApplicationModel.DataTransfer;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 
@@ -12,7 +11,7 @@ internal sealed class ClipboardReader
     private readonly IClipboardSource _clipboardSource;
 
     public ClipboardReader()
-        : this(new WinRtClipboardSource(new User32ClipboardReader()))
+        : this(new User32ClipboardSource(new User32ClipboardReader()))
     {
     }
 
@@ -58,46 +57,48 @@ internal interface IClipboardContent
     ValueTask<string?> GetTextAsync();
 }
 
-internal sealed class WinRtClipboardSource : IClipboardSource
+internal sealed class User32ClipboardSource : IClipboardSource
 {
-    private readonly User32ClipboardReader _fallbackReader;
+    private readonly User32ClipboardReader _reader;
 
-    public WinRtClipboardSource(User32ClipboardReader fallbackReader)
+    public User32ClipboardSource(User32ClipboardReader reader)
     {
-        _fallbackReader = fallbackReader;
+        _reader = reader;
     }
 
-    public ValueTask<IClipboardContent?> GetContentAsync()
+    public async ValueTask<IClipboardContent?> GetContentAsync()
     {
-        return ValueTask.FromResult<IClipboardContent?>(new WinRtClipboardContent(Clipboard.GetContent()));
+        string? text = await _reader.TryGetTextAsync().ConfigureAwait(false);
+        return text is null ? null : new BufferedClipboardContent(text);
     }
 
     public ValueTask<string?> TryGetFallbackTextAsync()
     {
-        return _fallbackReader.TryGetTextAsync();
+        return _reader.TryGetTextAsync();
     }
 }
 
-internal sealed class WinRtClipboardContent : IClipboardContent
+internal sealed class BufferedClipboardContent : IClipboardContent
 {
-    private readonly DataPackageView _content;
+    private readonly string _text;
 
-    public WinRtClipboardContent(DataPackageView content)
+    public BufferedClipboardContent(string text)
     {
-        _content = content;
+        _text = text;
     }
 
-    public bool ContainsText => _content.Contains(StandardDataFormats.Text);
+    public bool ContainsText => true;
 
-    public async ValueTask<string?> GetTextAsync()
+    public ValueTask<string?> GetTextAsync()
     {
-        return await _content.GetTextAsync();
+        return ValueTask.FromResult<string?>(_text);
     }
 }
 
 internal sealed class User32ClipboardReader
 {
     private const uint CF_UNICODETEXT = 13;
+    private const int MaximumDecodedCharacters = TemplateRenderer.SelectionCharacterLimit + 1;
 
     public ValueTask<string?> TryGetTextAsync()
     {
@@ -150,15 +151,16 @@ internal sealed class User32ClipboardReader
         }
 
         nuint characterCapacity = allocationSize / sizeof(char);
-        if (characterCapacity > int.MaxValue)
+        int inspectedCharacterCount = (int)Math.Min(characterCapacity, (nuint)MaximumDecodedCharacters);
+        ReadOnlySpan<char> characters = new((void*)textPointer, inspectedCharacterCount);
+        int terminatorIndex = characters.IndexOf('\0');
+        if (terminatorIndex >= 0)
         {
-            return null;
+            return Marshal.PtrToStringUni(textPointer, terminatorIndex);
         }
 
-        ReadOnlySpan<char> characters = new((void*)textPointer, (int)characterCapacity);
-        int terminatorIndex = characters.IndexOf('\0');
-        return terminatorIndex < 0
-            ? null
-            : Marshal.PtrToStringUni(textPointer, terminatorIndex);
+        return characterCapacity > (nuint)MaximumDecodedCharacters
+            ? Marshal.PtrToStringUni(textPointer, MaximumDecodedCharacters)
+            : null;
     }
 }

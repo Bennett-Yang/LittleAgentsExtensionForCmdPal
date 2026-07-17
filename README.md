@@ -47,6 +47,8 @@ Summarize this: {input}
 
 Little Agents does not support images, audio, tool calls, RAG, document upload, cost tracking, or provider model auto discovery.
 
+Individual assistant responses are capped at 256,000 characters to prevent a provider from exhausting extension memory. Clipboard text is bounded before it is copied into managed memory and remains capped at 8,000 characters in rendered prompts.
+
 Little Agents does not bypass TLS certificate validation. For loopback providers without a trusted certificate, use `http://localhost`; all remote providers require HTTPS.
 
 ## Privacy

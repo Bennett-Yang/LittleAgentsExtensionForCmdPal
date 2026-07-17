@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Reflection;
 using System.Security.Authentication;
@@ -18,6 +19,9 @@ using Microsoft.CommandPalette.Extensions.Toolkit;
 namespace LittleAgentsExtension;
 internal sealed partial class ChatRunPage : ContentPage
 {
+    internal const int MaximumAssistantResponseCharacters = 256_000;
+    private static readonly TimeSpan StreamRenderInterval = TimeSpan.FromMilliseconds(50);
+    private const string ResponseLimitMessage = "_(response truncated at the 256,000 character safety limit)_";
     private readonly AgentDef _agent;
     private readonly ProviderDef _provider;
     private readonly string _apiKey;
@@ -140,15 +144,47 @@ internal sealed partial class ChatRunPage : ContentPage
         }
 
         transcript.Append("**You:** ").AppendLine(renderedUserMsg).AppendLine().Append("**Assistant:** ");
-        UpdateOutput(transcript.ToString(), thisCts);
+        string transcriptPrefix = transcript.ToString();
+        UpdateOutput(transcriptPrefix, thisCts);
         StringBuilder assistant = new();
+        Stopwatch renderTimer = Stopwatch.StartNew();
+        bool responseLimitReached = false;
         try
         {
             await foreach (string chunk in _llm.StreamAsync(request, _provider, _apiKey, ct).WithCancellation(ct).ConfigureAwait(false))
             {
-                assistant.Append(chunk);
-                UpdateOutput(transcript.ToString() + assistant, thisCts);
+                int remainingCharacters = MaximumAssistantResponseCharacters - assistant.Length;
+                if (chunk.Length >= remainingCharacters)
+                {
+                    if (remainingCharacters > 0)
+                    {
+                        assistant.Append(chunk, 0, remainingCharacters);
+                    }
+
+                    responseLimitReached = true;
+                }
+                else
+                {
+                    assistant.Append(chunk);
+                }
+
+                if (responseLimitReached || renderTimer.Elapsed >= StreamRenderInterval)
+                {
+                    UpdateOutput(transcriptPrefix + assistant, thisCts);
+                    renderTimer.Restart();
+                }
+
+                if (responseLimitReached)
+                {
+                    break;
+                }
             }
+
+            UpdateOutput(
+                responseLimitReached
+                    ? transcriptPrefix + assistant + "\n\n" + ResponseLimitMessage
+                    : transcriptPrefix + assistant,
+                thisCts);
             if (ReferenceEquals(_cts, thisCts))
             {
                 _lastAssistantText = assistant.ToString();
@@ -157,11 +193,11 @@ internal sealed partial class ChatRunPage : ContentPage
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            UpdateOutput(transcript.ToString() + assistant + "\n_(stopped)_", thisCts);
+            UpdateOutput(transcriptPrefix + assistant + "\n_(stopped)_", thisCts);
         }
         catch (Exception exception)
         {
-            UpdateOutput(transcript.ToString() + assistant + "\n\n" + MapErrorToMarkdown(exception), thisCts);
+            UpdateOutput(transcriptPrefix + assistant + "\n\n" + MapErrorToMarkdown(exception), thisCts);
             ShowToast(MapErrorToToast(exception));
         }
         finally
@@ -176,12 +212,12 @@ internal sealed partial class ChatRunPage : ContentPage
         _output.Body = body;
         RaiseItemsChanged(0);
     }
-    private static string MapErrorToMarkdown(Exception exception)
+    private string MapErrorToMarkdown(Exception exception)
     {
         if (HasTlsFailure(exception)) { return "> **Provider TLS certificate rejected.** Use a trusted certificate or http://localhost for local servers."; }
 
         int? status = TryGetStatus(exception);
-        string message = TrimForMarkdown(ScrubSecrets(exception.Message));
+        string message = TrimForMarkdown(ScrubSecrets(exception.Message, _apiKey));
         if (status is not null) { return $"> **Error {status}:** {message}"; }
         if (exception is HttpRequestException) { return $"> **Network error:** {message}"; }
         return $"> **Error:** {message}";
@@ -219,7 +255,11 @@ internal sealed partial class ChatRunPage : ContentPage
         try { return value is null ? null : Convert.ToInt32(value, CultureInfo.InvariantCulture); }
         catch (Exception ex) when (ex is InvalidCastException or FormatException or OverflowException) { return null; }
     }
-    private static string ScrubSecrets(string message) => Regex.Replace(message, SecretPattern, "***");
+    private static string ScrubSecrets(string message, string apiKey)
+    {
+        string scrubbed = apiKey.Length == 0 ? message : message.Replace(apiKey, "***", StringComparison.Ordinal);
+        return Regex.Replace(scrubbed, SecretPattern, "***");
+    }
     private static string TrimForMarkdown(string message) => message.Length <= 400 ? message : message[..400];
     private CommandResult ShowToast(string message) { _lastToastText = message; return CommandResult.ShowToast(new ToastArgs() { Message = message, Result = CommandResult.KeepOpen(), }); }
     internal void ActivatePageOnce()

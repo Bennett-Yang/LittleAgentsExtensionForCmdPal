@@ -60,7 +60,7 @@ Running an agent opens a fresh `ChatRunPage` when the provider exists and the AP
 
 `LittleAgentsExtension\Pages\Run\ChatRunPage.cs` owns first run initialization, template rendering, request construction, streaming output, error mapping, markdown refresh, history, and cancellation. `ChatRunPage.Commands.cs` owns Copy result, Copy transcript, Stop, Re-run, and Reply. `RunSessionCoordinator.cs` ensures the active page cancels older streams.
 
-`LittleAgentsExtension\Llm\OpenAiChatClient.cs` adapts `Microsoft.Extensions.AI` over the OpenAI SDK and streams text updates from chat completions. `TemplateRenderer.cs` renders `{input}` and `{selection}` for the first user turn. `ClipboardReader.cs` reads clipboard text with WinRT first and User32 fallback.
+`LittleAgentsExtension\Llm\OpenAiChatClient.cs` adapts `Microsoft.Extensions.AI` over the OpenAI SDK and streams text updates from chat completions. `TemplateRenderer.cs` renders `{input}` and `{selection}` for the first user turn. `ClipboardReader.cs` uses sized User32 `CF_UNICODETEXT` access so clipboard text is bounded before managed allocation.
 
 `LittleAgentsExtension\Storage\AgentStore.cs` and `ProviderStore.cs` persist JSON with schema version 1. `Models.cs` defines `AgentDef`, `ProviderDef`, and file envelopes. `WindowsPasswordVaultSecretStore.cs`, `DpapiSecretStore.cs`, and `SecretStoreFactory.cs` keep API keys outside provider JSON.
 
@@ -79,6 +79,7 @@ Running an agent opens a fresh `ChatRunPage` when the provider exists and the AP
 7. The first user message is rendered by `TemplateRenderer.Render`. Replies bypass template rendering and are sent verbatim.
 8. `ChatRunPage.BuildRequest()` prepends the system message, global system prefix plus agent system prompt, then appends the page local history.
 9. `OpenAiChatClient.StreamAsync()` creates an SDK chat client for the provider base URL and model, sends streaming chat completions, and yields non empty text chunks.
+10. `ChatRunPage` retains at most 256,000 characters from an individual assistant response and throttles intermediate markdown renders. When the limit is reached, it stops consuming that response, retains the bounded assistant turn, and displays a truncation notice.
 10. `ChatRunPage` mutates `MarkdownContent.Body` and calls `RaiseItemsChanged(0)` on each update. This is the validated markdown refresh path in `docs/decisions.md` and spike evidence.
 11. Successful streams append one assistant message to page history and update `_lastAssistantText`. Canceled streams show `_(stopped)_` and don't append an incomplete assistant turn. Provider errors are shown as scrubbed markdown and short toasts.
 
@@ -98,7 +99,7 @@ Current template variables are text only:
 
 `{input}` is text typed by the operator when the agent runs. If the first run template contains an unescaped `{input}`, the run waits for the input form.
 
-`{selection}` is current Windows clipboard text, capped at 8,000 characters. Text longer than the cap is replaced with `[truncated to 8000 chars]` followed by the first 8,000 characters.
+`{selection}` is current Windows clipboard text, capped at 8,000 characters. The User32 reader inspects the clipboard allocation size and copies at most 8,001 characters into managed memory, allowing the renderer to detect overflow. Text longer than the cap is replaced with `[truncated to 8000 chars]` followed by the first 8,000 characters.
 
 `{{` and `}}` escape literal braces. Unknown placeholders are preserved. Placeholder names are case sensitive, so `{Input}` is not `{input}`.
 
@@ -116,7 +117,7 @@ Copy result writes only the latest completed assistant turn. If there is no comp
 
 ## Error Handling Rules
 
-Provider and request errors must not leak API keys. `ChatRunPage` maps TLS certificate failures to a certificate markdown message and `TLS rejected` toast. HTTP status exceptions map to `Error <status>`. Network failures map to `Network error`. Other errors map to `Error`. Error markdown is secret scrubbed and capped at 400 characters.
+Provider and request errors must not leak API keys. Error handling removes the exact configured credential and then applies heuristic `sk-` redaction. `ChatRunPage` maps TLS certificate failures to a certificate markdown message and `TLS rejected` toast. HTTP status exceptions map to `Error <status>`. Network failures map to `Network error`. Other errors map to `Error`. Error markdown is secret scrubbed and capped at 400 characters.
 
 The client layer doesn't bypass TLS certificate validation. For loopback providers without a trusted certificate, use `http://localhost`; remote providers require HTTPS.
 

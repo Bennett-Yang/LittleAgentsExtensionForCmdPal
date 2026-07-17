@@ -8,11 +8,11 @@ namespace LittleAgentsExtension.Tests;
 
 public sealed partial class ChatRunPageStreamingTests
 {
-    private static ChatRunPage CreatePage(ILlmChatClient client, RunSessionCoordinator? session = null, Func<RuntimeSettings>? settings = null)
+    private static ChatRunPage CreatePage(ILlmChatClient client, RunSessionCoordinator? session = null, Func<RuntimeSettings>? settings = null, string apiKey = ApiKey)
     {
         AgentDef agent = new("agent-a", "Agent A", "You are concise.", "Say foo.", "provider-a", "model-a", "\uE700", ["test"]);
         ProviderDef provider = new("provider-a", "Provider A", "https://provider.example.test/v1", "model-a");
-        return new ChatRunPage(agent, provider, ApiKey, client, session ?? new RunSessionCoordinator(), new FakeClipboardWriter(), settings, () => Task.FromResult<string?>(null));
+        return new ChatRunPage(agent, provider, apiKey, client, session ?? new RunSessionCoordinator(), new FakeClipboardWriter(), settings, () => Task.FromResult<string?>(null));
     }
 
     private static async IAsyncEnumerable<string> EmitChunks(StreamCall call, params string[] chunks)
