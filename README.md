@@ -15,6 +15,8 @@ PowerToys with Command Palette v0.100+ installed.
 
 Little Agents can call any service that exposes an OpenAI-compatible `/v1/chat/completions` endpoint. The provider base URL should include the API root, including `/v1` when the service expects it. The request layer appends `/chat/completions` after that base URL.
 
+Remote provider URLs must use HTTPS. Plain HTTP is accepted only for loopback providers such as `localhost`, `127.0.0.0/8`, or `::1`.
+
 Worked configuration examples:
 
 | Provider | Base URL | Model example | Notes |
@@ -45,7 +47,7 @@ Summarize this: {input}
 
 Little Agents does not support images, audio, tool calls, RAG, document upload, cost tracking, or provider model auto discovery.
 
-Little Agents does not bypass TLS certificate validation. For local providers without a trusted certificate, use `http://localhost` or install a trusted certificate in Windows.
+Little Agents does not bypass TLS certificate validation. For loopback providers without a trusted certificate, use `http://localhost`; all remote providers require HTTPS.
 
 ## Privacy
 

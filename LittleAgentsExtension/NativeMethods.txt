@@ -6,4 +6,5 @@ SetClipboardData
 GlobalAlloc
 GlobalFree
 GlobalLock
+GlobalSize
 GlobalUnlock

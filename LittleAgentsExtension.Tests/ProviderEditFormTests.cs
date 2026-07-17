@@ -50,6 +50,41 @@ public sealed class ProviderEditFormTests
         Assert.Null(secrets.TryGet("provider-a"));
     }
 
+    [Theory]
+    [InlineData("http://api.example.com/v1")]
+    [InlineData("http://192.168.1.10:11434/v1")]
+    [InlineData("http://localhost.example.com/v1")]
+    [InlineData("http://localhost@api.example.com/v1")]
+    public void SubmitForm_rejects_plain_http_for_remote_provider(string baseUrl)
+    {
+        using TempProviderStore tempStore = new();
+        ProviderStore providers = new(tempStore.StorePath);
+        SecretStoreContractTests.InMemorySecretStore secrets = new();
+        ProviderEditForm form = new(providers, secrets, existing: null);
+
+        form.SubmitForm(Payload("Remote provider", baseUrl, "sk-test-remote-http", "model-a"));
+
+        Assert.Empty(providers.Load());
+    }
+
+    [Theory]
+    [InlineData("http://localhost:11434/v1")]
+    [InlineData("http://127.0.0.2:11434/v1")]
+    [InlineData("http://[::1]:11434/v1")]
+    public void SubmitForm_allows_plain_http_for_loopback_provider(string baseUrl)
+    {
+        using TempProviderStore tempStore = new();
+        ProviderStore providers = new(tempStore.StorePath);
+        SecretStoreContractTests.InMemorySecretStore secrets = new();
+        ProviderEditForm form = new(providers, secrets, existing: null);
+
+        form.SubmitForm(Payload("Local provider", baseUrl, "sk-test-loopback", "model-a"));
+
+        ProviderDef provider = Assert.Single(providers.Load());
+        Assert.Equal(baseUrl, provider.BaseUrl);
+        Assert.Equal("sk-test-loopback", secrets.TryGet(provider.Id));
+    }
+
     [Fact]
     public void SubmitForm_keeps_existing_secret_when_edit_api_key_is_empty()
     {

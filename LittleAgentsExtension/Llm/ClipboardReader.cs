@@ -128,7 +128,8 @@ internal sealed class User32ClipboardReader
 
             try
             {
-                return Marshal.PtrToStringUni(textPointer);
+                nuint allocationSize = PInvoke.GlobalSize(globalHandle);
+                return DecodeUnicodeText(textPointer, allocationSize);
             }
             finally
             {
@@ -139,5 +140,25 @@ internal sealed class User32ClipboardReader
         {
             PInvoke.CloseClipboard();
         }
+    }
+
+    internal static unsafe string? DecodeUnicodeText(nint textPointer, nuint allocationSize)
+    {
+        if (textPointer == 0 || allocationSize == 0 || allocationSize % sizeof(char) != 0)
+        {
+            return null;
+        }
+
+        nuint characterCapacity = allocationSize / sizeof(char);
+        if (characterCapacity > int.MaxValue)
+        {
+            return null;
+        }
+
+        ReadOnlySpan<char> characters = new((void*)textPointer, (int)characterCapacity);
+        int terminatorIndex = characters.IndexOf('\0');
+        return terminatorIndex < 0
+            ? null
+            : Marshal.PtrToStringUni(textPointer, terminatorIndex);
     }
 }

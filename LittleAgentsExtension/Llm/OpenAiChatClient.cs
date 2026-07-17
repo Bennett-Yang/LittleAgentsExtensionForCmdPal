@@ -66,7 +66,12 @@ internal sealed class OpenAiChatClient : ILlmChatClient
 
     private static OpenAIClientOptions CreateOptions(string baseUrl, HttpMessageHandler? messageHandler)
     {
-        OpenAIClientOptions options = new() { Endpoint = new Uri(baseUrl) };
+        if (!ProviderUrlPolicy.TryCreateSupportedUri(baseUrl, out Uri? endpoint))
+        {
+            throw new UriFormatException("Provider endpoint must use HTTPS unless it is a loopback HTTP URL.");
+        }
+
+        OpenAIClientOptions options = new() { Endpoint = endpoint };
         if (messageHandler is not null)
         {
             options.Transport = new HttpClientPipelineTransport(new HttpClient(messageHandler));

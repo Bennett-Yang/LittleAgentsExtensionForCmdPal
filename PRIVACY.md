@@ -108,11 +108,10 @@ practices, data-retention rules, and location of processing before sending
 sensitive information. Users should not submit personal information belonging
 to another person unless they have permission and a lawful basis to do so.
 
-Little Agents supports both HTTPS and HTTP provider URLs. HTTPS protects data in
-transit. If the user deliberately configures a plain HTTP endpoint, the request
-and API credential are not protected by transport encryption. Plain HTTP should
-be used only for trusted local services, such as a service running on the same
-device or a trusted private network.
+Little Agents requires HTTPS for remote provider URLs so requests and API
+credentials are protected by transport encryption. Plain HTTP is accepted only
+for loopback services running on the same device, such as a provider configured
+at `http://localhost`.
 
 ## Local storage and retention
 

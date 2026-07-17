@@ -1,4 +1,5 @@
 using LittleAgentsExtension.Llm;
+using System.Runtime.InteropServices;
 using Xunit;
 
 namespace LittleAgentsExtension.Tests;
@@ -43,6 +44,74 @@ public sealed class ClipboardReaderTests
 
         Assert.Null(result);
         Assert.Equal(0, source.FallbackCalls);
+    }
+
+    [Fact]
+    public void DecodeUnicodeText_returns_null_when_allocation_has_no_terminator()
+    {
+        char[] malformedText = ['n', 'o', 'n', 'u', 'l', 'l'];
+        nint textPointer = AllocateCharacters(malformedText);
+        try
+        {
+            string? result = User32ClipboardReader.DecodeUnicodeText(
+                textPointer,
+                (nuint)(malformedText.Length * sizeof(char)));
+
+            Assert.Null(result);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(textPointer);
+        }
+    }
+
+    [Fact]
+    public void DecodeUnicodeText_stops_at_terminator_within_allocation()
+    {
+        char[] clipboardText = ['o', 'k', '\0', 'x'];
+        nint textPointer = AllocateCharacters(clipboardText);
+        try
+        {
+            string? result = User32ClipboardReader.DecodeUnicodeText(
+                textPointer,
+                (nuint)(clipboardText.Length * sizeof(char)));
+
+            Assert.Equal("ok", result);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(textPointer);
+        }
+    }
+
+    [Fact]
+    public void DecodeUnicodeText_rejects_odd_sized_utf16_allocation()
+    {
+        char[] clipboardText = ['o', 'k', '\0'];
+        nint textPointer = AllocateCharacters(clipboardText);
+        try
+        {
+            string? result = User32ClipboardReader.DecodeUnicodeText(
+                textPointer,
+                (nuint)((clipboardText.Length * sizeof(char)) - 1));
+
+            Assert.Null(result);
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(textPointer);
+        }
+    }
+
+    private static nint AllocateCharacters(char[] characters)
+    {
+        nint pointer = Marshal.AllocHGlobal(characters.Length * sizeof(char));
+        for (int index = 0; index < characters.Length; index++)
+        {
+            Marshal.WriteInt16(pointer, index * sizeof(char), (short)characters[index]);
+        }
+
+        return pointer;
     }
 
     private sealed class FakeClipboardSource : IClipboardSource

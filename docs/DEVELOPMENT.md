@@ -38,7 +38,7 @@ The extension exposes one top level command provider, `LittleAgentsExtensionComm
 
 On first run, `AgentsListPage` loads agents and providers from local JSON. If there are no providers, empty content and the `+ New Agent` pinned item route the operator to provider creation first. If providers exist but no agents exist, empty content routes the operator to create an agent.
 
-Provider setup asks for name, base URL, API key, and optional default model. The base URL must be absolute `http` or `https`; include the provider API root such as `https://api.openai.com/v1`, `https://openrouter.ai/api/v1`, or `http://localhost:11434/v1`. The request layer appends `/chat/completions` after that base URL.
+Provider setup asks for name, base URL, API key, and optional default model. The base URL must use HTTPS unless it identifies a loopback provider, for which HTTP is accepted. Include the provider API root, such as `https://api.openai.com/v1`, `https://openrouter.ai/api/v1`, or `http://localhost:11434/v1`. The request layer appends `/chat/completions` after that base URL.
 
 Agent setup asks for name, system prompt, user template, provider, model, icon, and comma separated tags. If model is empty, the selected provider default model is used. If neither the agent model nor provider default model is present, save is rejected.
 
@@ -118,7 +118,7 @@ Copy result writes only the latest completed assistant turn. If there is no comp
 
 Provider and request errors must not leak API keys. `ChatRunPage` maps TLS certificate failures to a certificate markdown message and `TLS rejected` toast. HTTP status exceptions map to `Error <status>`. Network failures map to `Network error`. Other errors map to `Error`. Error markdown is secret scrubbed and capped at 400 characters.
 
-The client layer doesn't bypass TLS certificate validation. For local providers without a trusted certificate, use `http://localhost` or install a trusted certificate in Windows.
+The client layer doesn't bypass TLS certificate validation. For loopback providers without a trusted certificate, use `http://localhost`; remote providers require HTTPS.
 
 ## Extending Safely
 
@@ -181,7 +181,7 @@ Images, audio, tools, RAG, document upload, cost tracking, provider model auto d
 
 Clipboard selection is text only. Image only clipboard content is treated as no selection.
 
-Provider base URLs must be absolute `http` or `https`. The app does not ignore TLS certificate errors.
+Provider base URLs must use HTTPS, except that loopback providers may use HTTP. The app does not ignore TLS certificate errors.
 
 Release AOT and trim support is best effort. The project is configured to tolerate documented trim warnings for `OpenAI` and `Microsoft.Extensions.AI.OpenAI` in Release while keeping publish and build errors at zero.
 

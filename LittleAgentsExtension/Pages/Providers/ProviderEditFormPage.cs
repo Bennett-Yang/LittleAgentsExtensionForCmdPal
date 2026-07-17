@@ -1,4 +1,5 @@
 using LittleAgentsExtension.Common;
+using LittleAgentsExtension.Llm;
 using LittleAgentsExtension.Storage;
 using Microsoft.CommandPalette.Extensions;
 using Microsoft.CommandPalette.Extensions.Toolkit;
@@ -113,7 +114,7 @@ internal sealed partial class ProviderEditForm : FormContent
 
         if (!IsSupportedBaseUrl(baseUrl))
         {
-            return ShowToastKeepOpen("Base URL must be an absolute http or https URL");
+            return ShowToastKeepOpen("Base URL must use HTTPS; local loopback providers may use HTTP");
         }
 
         if (_existing is null && apiKey.Length == 0)
@@ -137,8 +138,7 @@ internal sealed partial class ProviderEditForm : FormContent
 
     private static bool IsSupportedBaseUrl(string baseUrl)
     {
-        return Uri.TryCreate(baseUrl, UriKind.Absolute, out Uri? uri)
-            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+        return ProviderUrlPolicy.TryCreateSupportedUri(baseUrl, out _);
     }
 
     private static string GetString(JsonObject formInput, string key)

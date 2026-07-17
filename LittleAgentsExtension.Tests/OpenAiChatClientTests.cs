@@ -166,6 +166,19 @@ public sealed partial class OpenAiChatClientTests
         Assert.DoesNotContain("sk-", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task StreamAsync_rejects_saved_remote_http_provider_before_sending_request()
+    {
+        FakeHttpHandler handler = FakeHttpHandler.SseChunks(1);
+        OpenAiChatClient client = new(handler);
+
+        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await CollectAsync(client.StreamAsync(CreateRequest(), CreateProvider("http://api.example.com/v1"), ApiKey, CancellationToken.None)));
+
+        Assert.Contains("must use HTTPS", exception.Message, StringComparison.Ordinal);
+        Assert.Null(handler.LastRequest);
+    }
+
     private static ChatRequest CreateRequest() => new(
         "gpt-test",
         new[]
