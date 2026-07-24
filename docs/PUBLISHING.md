@@ -42,25 +42,28 @@ Unsigned Store packages are expected: Microsoft Store signs the accepted package
 
 ### Build with GitHub Actions
 
-The `Build Microsoft Store MSIX bundle` workflow runs the tests, builds both
+The `Release unsigned MSIX bundle` workflow runs the tests, builds both
 architectures through `build-store.ps1`, validates the required runtime files,
-and uploads the bundle with its SHA-256 checksum.
+creates a GitHub Release, and attaches the bundle with its SHA-256 checksum. It
+also retains the files as a workflow artifact for 30 days.
 
 Run it manually from **Actions**. Leave the version input blank to use
 `AppxPackageVersion` from `LittleAgentsExtension.csproj`, or supply a four-part
 MSIX version such as `0.1.2.0`.
 
-Pushing a tag with the `store-v` prefix also runs the workflow and uses the tag
-suffix as the package version:
+Pushing a tag with the `store-v` prefix runs the workflow, uses the tag suffix
+as the package version, and publishes the release under that tag:
 
 ```powershell
 git tag store-v0.1.2.0
 git push origin store-v0.1.2.0
 ```
 
-Download the `LittleAgentsExtension-<version>-PartnerCenter` workflow artifact
-and upload the `.msixbundle` inside it to Partner Center. The individual x64 and
-ARM64 packages are already contained in the bundle.
+A manual run creates the matching `store-v<version>` tag at the commit being
+built. Download the `.msixbundle` from the GitHub Release (or from the
+`LittleAgentsExtension-<version>-PartnerCenter` workflow artifact) and upload it
+to Partner Center. The individual x64 and ARM64 packages are already contained
+in the bundle.
 
 ## Validate before submission
 

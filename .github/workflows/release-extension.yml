@@ -1,4 +1,4 @@
-name: Build Microsoft Store MSIX bundle
+name: Release unsigned MSIX bundle
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ on:
       - "store-v*"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: store-package-${{ github.ref }}
@@ -81,6 +81,13 @@ jobs:
           }
 
           "version=$version" >> $env:GITHUB_OUTPUT
+          $releaseTag = if ($env:REF_TYPE -eq "tag") {
+              $env:REF_NAME
+          }
+          else {
+              "store-v$version"
+          }
+          "release_tag=$releaseTag" >> $env:GITHUB_OUTPUT
           Write-Host "Building package version $version from $source."
 
       - name: Restore test dependencies
@@ -127,6 +134,52 @@ jobs:
           compression-level: 0
           retention-days: 30
 
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.version.outputs.release_tag }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          BUNDLE_PATH: ${{ steps.package.outputs.bundle_path }}
+          CHECKSUM_PATH: ${{ steps.package.outputs.checksum_path }}
+        run: |
+          $releaseExists = $false
+          gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+              $releaseExists = $true
+          }
+
+          if ($releaseExists) {
+              gh release upload $env:RELEASE_TAG `
+                  $env:BUNDLE_PATH `
+                  $env:CHECKSUM_PATH `
+                  --clobber `
+                  --repo $env:GITHUB_REPOSITORY
+          }
+          else {
+              $arguments = @(
+                  "release", "create", $env:RELEASE_TAG,
+                  $env:BUNDLE_PATH,
+                  $env:CHECKSUM_PATH,
+                  "--title", "Little Agents $env:RELEASE_VERSION",
+                  "--generate-notes",
+                  "--repo", $env:GITHUB_REPOSITORY
+              )
+
+              if ($env:GITHUB_REF_TYPE -eq "tag") {
+                  $arguments += "--verify-tag"
+              }
+              else {
+                  $arguments += @("--target", $env:GITHUB_SHA)
+              }
+
+              & gh @arguments
+          }
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "GitHub Release publication failed with exit code $LASTEXITCODE."
+          }
+
       - name: Write build summary
         shell: pwsh
         run: |
@@ -138,6 +191,7 @@ jobs:
               "- Bundle: ${{ steps.package.outputs.bundle_path }}"
               "- SHA-256: ${{ steps.package.outputs.sha256 }}"
               "- Artifact: LittleAgentsExtension-${{ steps.version.outputs.version }}-PartnerCenter"
+              "- Release: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.version.outputs.release_tag }}"
               ""
-              "Upload the .msixbundle from this artifact to Partner Center. The bundle is intentionally unsigned; Microsoft Store signs it during ingestion."
+              "The GitHub Release and workflow artifact both contain the bundle and checksum. The bundle is intentionally unsigned; Microsoft Store signs it during ingestion."
           ) >> $env:GITHUB_STEP_SUMMARY
