@@ -22,7 +22,9 @@ internal sealed class WindowsPasswordVaultSecretStore : ISecretStore
 
     public void Set(string providerId, string apiKey)
     {
-        Delete(providerId);
+        // PasswordVault.Add replaces a credential with the same resource and user.
+        // Avoid probing with Retrieve first: a missing credential throws, and that
+        // negative lookup can block the Command Palette UI while saving a provider.
         _passwordVault.Add(new PasswordCredential(GetResourceName(providerId), Username, apiKey));
     }
 

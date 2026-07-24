@@ -16,6 +16,7 @@ internal sealed partial class AgentsListPage : DynamicListPage
     private readonly ILlmChatClient _llm;
     private readonly RunSessionCoordinator _sessions;
     private readonly Func<RuntimeSettings> _settings;
+    private readonly ProvidersListPage _manageProvidersPage;
     private AgentDef[] _cachedAgents;
     private ProviderDef[] _cachedProviders;
 
@@ -27,6 +28,11 @@ internal sealed partial class AgentsListPage : DynamicListPage
         _llm = llm;
         _sessions = sessions;
         _settings = settings ?? (() => RuntimeSettings.Default);
+        _manageProvidersPage = new ProvidersListPage(_providers, _secrets, _agents)
+        {
+            Id = "little-agents.providers",
+            Name = "Manage Providers",
+        };
 
         Title = "Little Agents";
         Icon = Icons.AgentDefault;

@@ -44,6 +44,18 @@ public sealed class AgentsListPagePinnedNavigationTests
     }
 
     [Fact]
+    public void Manage_providers_reuses_page_across_list_refreshes()
+    {
+        using TempStoreDirectory tempStore = new();
+        AgentsListPage page = CreatePage(tempStore.CreateAgentStore(), tempStore.CreateProviderStore());
+
+        ICommand first = GetProperty<ICommand>(FindItemByTitle(page, "Manage Providers"), "Command");
+        ICommand second = GetProperty<ICommand>(FindItemByTitle(page, "Manage Providers"), "Command");
+
+        Assert.Same(first, second);
+    }
+
+    [Fact]
     public void Settings_placeholder_is_removed_after_t40()
     {
         using TempStoreDirectory tempStore = new();
